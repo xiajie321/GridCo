@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网格法碰撞检测 - 保姆级教程</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../Main/index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>网格法空间划分</h1>
+            <p class="subtitle">让碰撞检测变得简单又高效！</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 为什么要用网格法？</h2>
+            <div class="dialogue-box">
+                <p>想象一下，你在一个巨大的广场上找人。如果你要一个个问"你是小明吗？"，那太累了！(这就是传统的O(N²)全对全检测)</p>
+                <p>但如果我们把广场划分成很多小格子，你只要在小明所在的那个格子里找，是不是就快多了？</p>
+                <p>这就是<strong>网格法空间划分</strong>的核心思想！</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step1">
+            <h2>1. 建立网格 (The Grid)</h2>
+            <p>首先，我们需要把游戏世界切成一块块的蛋糕...啊不，是网格。</p>
+            <p>试着调整下面的滑块，看看网格是如何变化的：</p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <label>网格大小: <span id="cellSizeDisplay">50</span></label>
+                    <input type="range" id="cellSizeSlider" min="20" max="100" value="50">
+                </div>
+                <canvas id="gridCanvas" width="400" height="400"></canvas>
+                <p class="hint">↑ 这是一个 400x400 的游戏世界</p>
+            </div>
+            
+            <div class="explanation">
+                <p>这就好比把地图划分成坐标系。每个格子都有自己的编号 (Cell X, Cell Y)。</p>
+                <div class="dialogue-box">
+                    <p><strong>小贴士：</strong> 格子大小很有讲究哦！</p>
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li>❌ <strong>太小：</strong> 格子数量爆炸，内存占用大，物体可能跨多个格子。</li>
+                        <li>❌ <strong>太大：</strong> 一个格子里挤了太多物体，最后又变回了暴力检测。</li>
+                        <li>✅ <strong>合适：</strong> 通常设置为略大于游戏中最大物体的尺寸。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step2">
+            <h2>2. 物体定位 (Positioning)</h2>
+            <p>现在我们有网格了。当一个游戏物体出现在世界中，我们怎么知道它在哪个格子里？</p>
+            <div class="code-block">
+                <h3>核心公式：</h3>
+                <p class="math">格子坐标 = ⌊ 物体坐标 / 格子大小 ⌋</p>
+            </div>
+            <p>这就像是在找门牌号：如果你家在 520 号，每 100 号是一条街，那你就在第 5 条街 (520 ÷ 100 = 5.2，取整数 5)。</p>
+            <p>点击下方的网格，放置一个"玩家"，看看它的坐标是如何计算的：</p>
+            
+            <div class="interactive-area">
+                <canvas id="positionCanvas" width="400" height="400"></canvas>
+                <div id="positionInfo" class="info-panel">
+                    请在上方点击放置物体...
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step3">
+            <h2>3. 碰撞检测 (Collision)</h2>
+            <p>最精彩的部分来了！我们不需要检查所有物体之间的碰撞。</p>
+            <p><strong>规则：只有在同一个格子里的物体，才有可能相撞。</strong></p>
+            <p>按下"开始运动"按钮，观察只有变红的物体（在同一格）才会进行精细检测。</p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <button id="toggleSimBtn" class="pixel-btn">开始运动</button>
+                    <button id="addObjBtn" class="pixel-btn">添加物体</button>
+                    <button id="clearObjBtn" class="pixel-btn">清空</button>
+                </div>
+                <canvas id="collisionCanvas" width="400" height="400"></canvas>
+                <div id="collisionStats">检测次数: 0</div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step4">
+            <h2>4. 性能大比拼 (Battle!)</h2>
+            <p>口说无凭，我们来做个压力测试。我们将放入 100 个物体，看看两种方法的差距。</p>
+            <p><strong>观察红色的"运算量条"，越长代表电脑越累。</strong></p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <button id="battleModeBtn" class="pixel-btn">切换模式：当前是[暴力法]</button>
+                    <button id="add100Btn" class="pixel-btn">+ 添加50个物体</button>
+                    <button id="resetBattleBtn" class="pixel-btn">重置</button>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="battleCanvas" width="600" height="400"></canvas>
+                    <div id="performanceOverlay" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border: 2px solid #000; font-family: 'Consolas', monospace;">
+                        物体数量: <span id="objCount">0</span><br>
+                        检测次数: <span id="checkCount">0</span>
+                    </div>
+                </div>
+                <div class="bar-container" style="width: 100%; max-width: 600px; border: 2px solid #000; height: 30px; background: #eee; position: relative; margin-top: 10px;">
+                    <div id="loadBar" style="width: 0%; height: 100%; background: #FF6B6B; transition: width 0.1s;"></div>
+                    <span style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); line-height: 26px; font-weight: bold; color: #333;">运算负载</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="code-demo">
+            <h2>5. C# 代码实现</h2>
+            <p>Talk is cheap, show me the code. (在Unity中的实现示例)</p>
+            
+            <div class="code-container">
+<pre><code class="language-csharp">
+public class SpatialGrid
+{
+    // 字典用来存储每个格子里的物体列表
+    // Key: 格子坐标字符串 "x,y", Value: 物体列表
+    private Dictionary&lt;string, List&lt;GameObject&gt;&gt; grid = new Dictionary&lt;string, List&lt;GameObject&gt;&gt;();
+    private float cellSize;
+
+    public SpatialGrid(float size)
+    {
+        this.cellSize = size;
+    }
+
+    // 将物体添加到网格
+    public void AddObject(GameObject obj)
+    {
+        // 1. 计算物体所在的格子坐标
+        int cellX = Mathf.FloorToInt(obj.transform.position.x / cellSize);
+        int cellY = Mathf.FloorToInt(obj.transform.position.y / cellSize);
+        
+        // 2. 生成Key
+        string key = $"{cellX},{cellY}";
+
+        // 3. 如果格子不存在，创建一个新列表
+        if (!grid.ContainsKey(key))
+        {
+            grid[key] = new List&lt;GameObject&gt;();
+        }
+
+        // 4. 加入物体
+        grid[key].Add(obj);
+    }
+
+    // 获取附近的物体进行检测
+    public List&lt;GameObject&gt; GetNearbyObjects(GameObject obj)
+    {
+        int cellX = Mathf.FloorToInt(obj.transform.position.x / cellSize);
+        int cellY = Mathf.FloorToInt(obj.transform.position.y / cellSize);
+        string key = $"{cellX},{cellY}";
+
+        if (grid.ContainsKey(key))
+        {
+            return grid[key]; // 只返回同一格子里的物体
+        }
+        return new List&lt;GameObject&gt;();
+    }
+    
+    // 每帧调用：清空网格并重新填入所有物体
+    public void UpdateGrid(List&lt;GameObject&gt; allObjects)
+    {
+        grid.Clear();
+        foreach(var obj in allObjects)
+        {
+            AddObject(obj);
+        }
+    }
+}
+</code></pre>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>恭喜你！你已经掌握了网格法空间划分的基础！</p>
+            <p>继续加油，未来的游戏开发大师！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

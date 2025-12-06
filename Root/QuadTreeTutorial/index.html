@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四叉树碰撞检测 - 保姆级教程</title>
+    <link rel="stylesheet" href="../GridCollisionTutorial/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../Main/index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>四叉树 (QuadTree)</h1>
+            <p class="subtitle">分而治之，层层递进！</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 为什么要用四叉树？</h2>
+            <div class="dialogue-box">
+                <p>网格法虽然好，但如果世界很大而物体很稀疏，就会有很多空格子浪费内存。或者物体分布极度不均匀，有的格子挤爆了，有的格子是空的。</p>
+                <p><strong>四叉树</strong>就像切蛋糕：如果一块蛋糕上草莓太多，我们就把它再切成四小块，直到每一块上的草莓数量刚刚好！</p>
+                <p>这种"按需分割"的智慧，就是四叉树的精髓。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step1">
+            <h2>1. 分裂 (Subdivide)</h2>
+            <p>当一个区域里的物体数量超过了我们的容忍度（比如 4 个），我们就把这个区域"分裂"成四个子区域。</p>
+            <p>试着在下面的方框里点击添加点，观察它是如何自动分裂的：</p>
+            
+            <div class="interactive-area">
+                <canvas id="splitCanvas" width="400" height="400"></canvas>
+                <div class="controls">
+                    <button id="clearSplitBtn" class="pixel-btn">清空</button>
+                    <span id="splitInfo">当前层级: 1</span>
+                </div>
+                <p class="hint">规则：单个格子内点超过 4 个就会分裂！</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step2">
+            <h2>2. 插入物体 (Insertion)</h2>
+            <p>每个物体都会从根节点开始，问自己："我属于哪个象限？"</p>
+            <p>如果物体正好骑在分割线上，它就只能留在父节点里，或者被添加到所有重叠的子节点（这里我们采用由父节点持有的策略）。</p>
+            <div class="interactive-area">
+                <canvas id="insertCanvas" width="400" height="400"></canvas>
+                <div id="insertInfo" class="info-panel">
+                    移动鼠标看看小方块属于哪个节点...
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step3">
+            <h2>3. 性能大比拼 (Battle Royale!)</h2>
+            <p>让我们来看看 <strong>暴力法</strong> vs <strong>网格法</strong> vs <strong>四叉树</strong> 的对决！</p>
+            <p>特别是在<strong>物体分布不均匀</strong>（聚成一团）的情况下，四叉树的优势会更明显。</p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <button id="modeBtn" class="pixel-btn">模式：暴力法</button>
+                    <button id="addClusterBtn" class="pixel-btn">+ 添加密集物体群</button>
+                    <button id="addRandomBtn" class="pixel-btn">+ 添加随机物体</button>
+                    <button id="resetBattleBtn" class="pixel-btn">重置</button>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="battleCanvas" width="600" height="400"></canvas>
+                    <div id="performanceOverlay" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border: 2px solid #000; font-family: 'Consolas', monospace;">
+                        模式: <span id="modeDisplay">暴力法</span><br>
+                        物体: <span id="objCount">0</span><br>
+                        检测: <span id="checkCount">0</span>
+                    </div>
+                </div>
+                <div class="bar-container" style="width: 100%; max-width: 600px; border: 2px solid #000; height: 30px; background: #eee; position: relative; margin-top: 10px;">
+                    <div id="loadBar" style="width: 0%; height: 100%; background: #FF6B6B; transition: width 0.1s;"></div>
+                    <span style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); line-height: 26px; font-weight: bold; color: #333;">运算负载</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="code-demo">
+            <h2>4. C# 代码实现</h2>
+            <p>核心逻辑在于递归：Splitting 和 GetIndex。</p>
+            
+            <div class="code-container">
+<pre><code class="language-csharp">
+public class QuadTree
+{
+    private int MAX_OBJECTS = 4;
+    private int MAX_LEVELS = 5;
+
+    private int level;
+    private List&lt;GameObject&gt; objects;
+    private Rect bounds;
+    private QuadTree[] nodes;
+
+    public QuadTree(int pLevel, Rect pBounds)
+    {
+        level = pLevel;
+        objects = new List&lt;GameObject&gt;();
+        bounds = pBounds;
+        nodes = new QuadTree[4]; // 四个子节点
+    }
+    
+    // 清空树
+    public void Clear()
+    {
+        objects.Clear();
+        for (int i = 0; i &lt; nodes.Length; i++)
+        {
+            if (nodes[i] != null)
+            {
+                nodes[i].Clear();
+                nodes[i] = null;
+            }
+        }
+    }
+
+    // 分裂节点
+    private void Split()
+    {
+        int subWidth = (int)(bounds.width / 2);
+        int subHeight = (int)(bounds.height / 2);
+        int x = (int)bounds.x;
+        int y = (int)bounds.y;
+
+        nodes[0] = new QuadTree(level+1, new Rect(x + subWidth, y, subWidth, subHeight)); // 右上
+        nodes[1] = new QuadTree(level+1, new Rect(x, y, subWidth, subHeight)); // 左上
+        nodes[2] = new QuadTree(level+1, new Rect(x, y + subHeight, subWidth, subHeight)); // 左下
+        nodes[3] = new QuadTree(level+1, new Rect(x + subWidth, y + subHeight, subWidth, subHeight)); // 右下
+    }
+
+    // 插入物体
+    public void Insert(GameObject pRect)
+    {
+        // 如果有子节点，尝试插入到子节点
+        if (nodes[0] != null)
+        {
+            int index = GetIndex(pRect);
+            if (index != -1)
+            {
+                nodes[index].Insert(pRect);
+                return;
+            }
+        }
+
+        // 否则加入当前节点
+        objects.Add(pRect);
+
+        // 如果超出容量且未达最大深度，则分裂
+        if (objects.Count &gt; MAX_OBJECTS && level &lt; MAX_LEVELS)
+        {
+            if (nodes[0] == null) Split();
+
+            int i = 0;
+            while (i &lt; objects.Count)
+            {
+                int index = GetIndex(objects[i]);
+                if (index != -1)
+                {
+                    nodes[index].Insert(objects[i]);
+                    objects.RemoveAt(i);
+                }
+                else
+                {
+                    i++;
+                }
+            }
+        }
+    }
+    
+    // 获取可能的碰撞对象
+    public List&lt;GameObject&gt; Retrieve(List&lt;GameObject&gt; returnObjects, GameObject pRect)
+    {
+        int index = GetIndex(pRect);
+        if (index != -1 && nodes[0] != null)
+        {
+            nodes[index].Retrieve(returnObjects, pRect);
+        }
+
+        returnObjects.AddRange(objects);
+        return returnObjects;
+    }
+}
+</code></pre>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>恭喜你！现在你已经是一个空间划分大师了！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
