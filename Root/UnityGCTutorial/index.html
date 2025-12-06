@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity GC 内存管理 - 保姆级教程</title>
+    <link rel="stylesheet" href="../GridCollisionTutorial/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        /* 针对内存教程的特殊样式 */
+        .memory-block {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #000;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            font-size: 12px;
+            background: #fff;
+            transition: all 0.3s;
+        }
+        .stack-container, .heap-container {
+            border: 4px solid #333;
+            /* padding 移除，由内部 div 控制，以防止滚动条裁剪标题 */
+            min-height: 100px;
+            background: #f4f4f4;
+            margin-bottom: 10px;
+            position: relative;
+            margin-top: 25px; /* 为标签留出空间 */
+        }
+        .stack-container::before { 
+            content: "Stack (栈)"; 
+            position: absolute; 
+            top: -24px; 
+            left: 10px; 
+            background: #FFD93D; 
+            padding: 2px 8px; 
+            border: 4px solid #000; 
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+        .heap-container::before { 
+            content: "Managed Heap (托管堆)"; 
+            position: absolute; 
+            top: -24px; 
+            left: 10px; 
+            background: #FF6B6B; 
+            padding: 2px 8px; 
+            border: 4px solid #000; 
+            color: white; 
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        .val-type { background: #4ECDC4; }
+        .ref-type { background: #FF6B6B; color: white; }
+        .pointer { border: 2px dashed #333; }
+        .garbage { background: #555; color: #aaa; }
+        
+        .fragment { background: repeating-linear-gradient(45deg, #ddd, #ddd 5px, #fff 5px, #fff 10px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../Main/index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>Unity 内存管理与 GC</h1>
+            <p class="subtitle">不再害怕 Garbage Collection！</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 内存的两大阵营</h2>
+            <div class="dialogue-box">
+                <p>在 C# 和 Unity 中，内存主要分为两块地盘：</p>
+                <ul>
+                    <li><strong>栈 (Stack)</strong>：像叠盘子一样，存取极快，用完自动弹出。专门存<strong>值类型</strong>。</li>
+                    <li><strong>堆 (Heap)</strong>：像一个大仓库，空间大但管理麻烦。专门存<strong>引用类型</strong>。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step1">
+            <h2>1. 值类型 vs 引用类型</h2>
+            <p>点击按钮，看看 `int a = 10` 和 `class User = new User()` 在内存里分别是怎么放的。</p>
+            
+            <div class="interactive-area">
+                <div style="display: flex; gap: 20px; width: 100%;">
+                    <div style="flex: 1;">
+                        <button id="addIntBtn" class="pixel-btn" style="width: 100%;">定义 int (值类型)</button>
+                    </div>
+                    <div style="flex: 2; display: flex; gap: 10px;">
+                        <button id="addClassBtn" class="pixel-btn" style="flex: 1;">new Class (引用类型)</button>
+                        <button id="clearMemBtn" class="pixel-btn" style="flex: 1;">清空函数栈</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 20px; width: 100%; margin-top: 20px;">
+                    <div class="stack-container" id="stackView" style="flex: 1; padding: 20px 10px 10px 10px;"></div>
+                    <div class="heap-container" id="heapView" style="flex: 2; padding: 20px 10px 10px 10px;"></div>
+                </div>
+                <div id="memInfo" class="info-panel">等待操作...</div>
+            </div>
+            <div class="explanation">
+                <p><strong>值类型 (int, float, struct)</strong>：直接住在栈里。函数结束，栈弹出，它们也就没了。</p>
+                <p><strong>引用类型 (class, string, array)</strong>：本体住在堆里，栈里只存一个"遥控器"（地址指针）。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step2">
+            <h2>2. 垃圾的产生 (Garbage)</h2>
+            <p>当栈里的"遥控器"被销毁（比如函数执行完了），堆里的本体还在，但没人能找到它了。</p>
+            <p>这时候，堆里的本体就变成了<strong>垃圾 (Garbage)</strong>，等待被回收。</p>
+            <div class="interactive-area">
+                <button id="popStackBtn" class="pixel-btn">函数返回 (Pop Stack)</button>
+                <p id="gcStatus">堆内存状态：良好</p>
+            </div>
+        </section>
+        
+        <section class="pixel-box content-section" id="step3">
+            <h2>3. GC 与 内存碎片 (残酷的真相)</h2>
+            <p>GC (垃圾回收) 来了！它会扫荡堆内存，把垃圾清理掉。<strong>但是！Unity 的 GC 不会整理房间！</strong></p>
+            <p><strong>不压缩 (Non-compacting)</strong>：GC 只是把垃圾标记为空闲，<strong>不会移动</strong>活着的对象。这导致内存里布满了细碎的空洞。</p>
+            <p><strong>后果</strong>：明明总空闲内存够大，但没有一块<strong>连续区域</strong>能塞下新对象，导致内存被迫扩大！</p>
+            
+            <div class="interactive-area">
+                <div style="margin-bottom: 10px; font-weight: bold; color: #FF6B6B;" id="fragmentStatus">状态: 内存整洁</div>
+                <canvas id="gcCanvas" width="600" height="120"></canvas>
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    <div style="display: flex; gap: 10px;">
+                        <button id="allocateBtn" class="pixel-btn" style="flex: 1;">1. 分配对象 (占坑)</button>
+                        <button id="makeGarbageBtn" class="pixel-btn" style="flex: 1;">2. 随机删除 (造碎片)</button>
+                        <button id="runGCBtn" class="pixel-btn" style="flex: 1; background-color: #FFD93D; color: #000;">3. 执行 GC (只清不移)</button>
+                    </div>
+                    <div>
+                        <button id="allocBigBtn" class="pixel-btn" style="width: 100%; background-color: #4ECDC4;">4. 尝试分配大对象</button>
+                    </div>
+                </div>
+                <p class="hint">红色=占用，灰色=垃圾，白色=空闲。请按顺序操作，体验"明明有空位却塞不进去"的绝望。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step4">
+            <h2>4. 增量 GC (Incremental GC)</h2>
+            <div class="dialogue-box">
+                <p><strong>传统 GC (Stop-the-World)</strong>：因为整理房间时不能有人乱动，所以 GC 会让游戏<strong>完全卡住</strong>几毫秒甚至几十毫秒。</p>
+                <p><strong>增量 GC</strong>：Unity 引入的新技术。它把一次大扫除分成很多次"随手捡垃圾"，分散在每一帧里做。虽然总工作量没变，但<strong>不卡顿</strong>了！</p>
+            </div>
+            <div class="interactive-area">
+                <canvas id="chartCanvas" width="600" height="150"></canvas>
+                <div class="controls">
+                    <button id="toggleGCModeBtn" class="pixel-btn">切换模式：传统 GC</button>
+                </div>
+                <p>↑ 观察帧率波动的区别（长红条代表卡顿）</p>
+            </div>
+        </section>
+        
+        <section class="pixel-box content-section" id="intro-unmanaged">
+            <h2>5. 托管堆 vs 非托管堆 (隐形杀手)</h2>
+            <p>很多新手会问：为什么我明明置空了变量，内存还是爆了？</p>
+            <p>因为 Unity 的资源（贴图、模型）就像冰山：C# 里只有一个小小的"句柄"（托管堆），而巨大的数据实体（像素点、顶点）其实藏在 C++ 的<strong>非托管堆</strong>里！</p>
+            
+            <div class="interactive-area">
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    <div style="display: flex; gap: 10px;">
+                        <button id="loadTexBtn" class="pixel-btn" style="flex: 1;">加载一张 4K 贴图</button>
+                        <button id="nullRefBtn" class="pixel-btn" style="flex: 1;">置空引用 (texture = null)</button>
+                        <button id="gcBtn" class="pixel-btn" style="flex: 1;">触发 GC</button>
+                    </div>
+                    <div>
+                        <button id="unloadBtn" class="pixel-btn" style="width: 100%; background-color: #FF6B6B;">Resources.UnloadUnusedAssets()</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 20px; width: 100%; margin-top: 20px; height: 150px; align-items: center;">
+                    <!-- 托管部分 -->
+                    <div style="flex: 1; border: 4px solid #333; height: 100%; position: relative; background: #f4f4f4;">
+                        <div style="position: absolute; top: -10px; left: 10px; background: #FF6B6B; padding: 0 5px; border: 2px solid #000; color: white;">托管堆 (C#)</div>
+                        <div id="managedObj" style="display: none; width: 60px; height: 60px; background: #4ECDC4; border: 2px solid #000; margin: 40px auto; text-align: center; font-size: 12px; padding-top: 10px;">Texture2D<br>(壳子)</div>
+                    </div>
+                    
+                    <!-- 连接线 -->
+                    <div style="width: 50px; position: relative;">
+                        <div id="linkLine" style="display: none; position: absolute; top: 50%; left: 0; width: 100%; height: 4px; background: #333;"></div>
+                        <div id="linkText" style="display: none; position: absolute; top: 30%; left: 10px; font-size: 12px;">引用</div>
+                    </div>
+
+                    <!-- 非托管部分 -->
+                    <div style="flex: 2; border: 4px dashed #333; height: 100%; position: relative; background: #eee;">
+                        <div style="position: absolute; top: -10px; left: 10px; background: #555; padding: 0 5px; border: 2px solid #000; color: white;">非托管堆 (Native C++)</div>
+                        <div id="unmanagedData" style="display: none; width: 80%; height: 80%; background: repeating-linear-gradient(45deg, #FFD93D, #FFD93D 10px, #ffcc00 10px, #ffcc00 20px); border: 2px solid #000; margin: 15px auto; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            巨大的像素数据<br>(20MB)
+                        </div>
+                    </div>
+                </div>
+                <div id="unmanagedInfo" class="info-panel">请加载贴图...</div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="game-demo">
+            <h2>6. 终极挑战：GC 大乱斗</h2>
+            <p>这是一个自动运行的弹球游戏。观察上方的内存条，体验 GC 带来的卡顿！</p>
+            <div class="dialogue-box">
+                <p><strong>游戏规则：</strong></p>
+                <ul>
+                    <li>⚪ <strong>小球</strong>：每 5 秒刷新一个 (引用类型)。</li>
+                    <li>🛡️ <strong>护盾</strong>：每 2 秒刷新 (引用类型)，抵挡一次死亡。</li>
+                    <li>🗡️ <strong>小刀</strong>：随机刷新，捡到后下次碰撞秒杀对方。</li>
+                    <li>⚠️ <strong>内存危机</strong>：每次生成对象都会消耗堆内存。当内存条满时，<strong>GC 会强制执行，导致游戏卡顿！</strong></li>
+                </ul>
+            </div>
+            
+            <div class="interactive-area">
+                <!-- 内存监控 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; font-weight: bold; font-size: 14px; width: 100%;">
+                    <div style="flex: 1;">
+                        <div id="gameStateInfo">状态: <span style="color: green;">运行中</span></div>
+                    </div>
+                    <div style="flex: 2;">
+                        <div id="gcCountInfo">GC 次数: 0</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px;">
+                    <div class="stack-container" style="flex: 1; height: 300px; position: relative;">
+                        <div id="gameStackView" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; padding: 15px 10px 10px 10px;"></div>
+                    </div>
+                    <div class="heap-container" style="flex: 2; height: 300px; position: relative;">
+                        <div id="gameHeapView" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 2px; padding: 15px 10px 10px 10px;"></div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 5px; font-weight: bold; width: 100%;">
+                    堆模拟 (30块容量): <span id="gameHeapSize">0</span> / 30 <span id="gameGCStatus" style="color: #FF6B6B; margin-left: 10px;"></span>
+                </div>
+
+                <canvas id="gameCanvas" width="600" height="400" style="background: #333;"></canvas>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px; width: 100%;">
+                    <button id="toggleGameBtn" class="pixel-btn" style="flex: 1;">开始/暂停</button>
+                    <button id="usePoolBtn" class="pixel-btn" style="flex: 1; background: #eee; color: #999;">对象池: 关闭</button>
+                    <button id="resetGameBtn" class="pixel-btn" style="flex: 1;">重置游戏</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="gc-mechanism">
+            <h2>7. 深度解密：压缩 vs 不压缩 (关键区别！)</h2>
+            <div class="dialogue-box">
+                <p>Unity 的 GC 与标准的 .NET GC 有一个关键区别：<strong>是否进行内存压缩 (Compaction)</strong>。</p>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 10px; flex-wrap: wrap;">
+                    <button id="modeCompactBtn" class="pixel-btn" style="background-color: #ddd;">模式 A: 标准 GC (会压缩)</button>
+                    <button id="modeUnityBtn" class="pixel-btn" style="background-color: #FFD93D; color: #000; border: 4px solid #000;">模式 B: Unity GC (不压缩)</button>
+                </div>
+                <p style="font-size: 0.9em; margin-top: 10px; color: #666;">当前模式：<span id="currentModeText" style="font-weight: bold; color: #000;">Unity GC</span></p>
+            </div>
+            
+            <div class="interactive-area">
+                <div id="msDemoContainer" style="display: flex; gap: 20px; align-items: flex-start; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+                    <!-- Roots -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                        <div style="font-weight: bold; background: #FFD93D; padding: 5px; border: 2px solid #000;">Roots (根)</div>
+                        <div class="root-obj" id="root1" style="width: 50px; height: 50px; background: #FFD93D; border: 3px solid #000; display: flex; align-items: center; justify-content: center; font-weight: bold;">Root</div>
+                    </div>
+                    
+                    <!-- Arrow -->
+                    <div style="font-size: 30px; align-self: center;">→</div>
+                    
+                    <!-- Heap Objects -->
+                    <div style="display: grid; grid-template-columns: repeat(5, 50px); gap: 10px; border: 4px solid #333; padding: 20px; background: #f4f4f4; position: relative;">
+                        <div style="position: absolute; top: -12px; left: 10px; background: #FF6B6B; color: white; padding: 0 5px; border: 2px solid #000; font-weight: bold;">Heap (堆)</div>
+                        <!-- Order: A, C, B, D, E -->
+                        <div class="heap-obj" id="msObj0" style="width: 50px; height: 50px; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative; font-weight: bold;">A</div>
+                        <div class="heap-obj" id="msObj1" style="width: 50px; height: 50px; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative; font-weight: bold;">C</div>
+                        <div class="heap-obj" id="msObj2" style="width: 50px; height: 50px; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative; font-weight: bold;">B</div>
+                        <div class="heap-obj" id="msObj3" style="width: 50px; height: 50px; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative; font-weight: bold;">D</div>
+                        <div class="heap-obj" id="msObj4" style="width: 50px; height: 50px; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative; font-weight: bold;">E</div>
+                    </div>
+                </div>
+                
+                <div class="controls" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <button id="msResetBtn" class="pixel-btn">重置</button>
+                    <button id="msMarkBtn" class="pixel-btn" style="background-color: #4ECDC4;">1. Mark (标记)</button>
+                    <button id="msSweepBtn" class="pixel-btn" style="background-color: #FF6B6B;">2. Sweep (清除)</button>
+                    <button id="msCompactBtn" class="pixel-btn" style="background-color: #9b59b6; color: white; display: none;">3. Compact (压缩)</button>
+                </div>
+                <div id="msInfo" class="info-panel" style="margin-top: 10px;">准备开始：对象 A, B, E 存活；C, D 是垃圾。</div>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>小结：少 new 对象，多用对象池，善待你的内存！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
