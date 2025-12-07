@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有限状态机 (FSM) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>有限状态机 (FSM)</h1>
+            <p class="subtitle">游戏 AI 的基石：从马里奥到 Boss 战</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon fsm-icon"></div>
+                <h2>1. 什么是 FSM？</h2>
+            </div>
+            <p>你的角色不可能同时“跳跃”和“趴下”。状态机就是用来管理这些互斥行为的工具。</p>
+            <p><strong>三大要素：</strong></p>
+            <ul style="list-style-type: square; padding-left: 20px;">
+                <li><strong>状态 (State)：</strong> 角色当前的模式（如 Idle, Run, Jump）。</li>
+                <li><strong>转换 (Transition)：</strong> 改变状态的条件（如 按下空格 -> 切换到 Jump）。</li>
+                <li><strong>动作 (Action)：</strong> 状态内执行的逻辑（如 播放跳跃动画）。</li>
+            </ul>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon fsm-icon"></div>
+                <h2>2. 状态机实验室</h2>
+            </div>
+            <p>点击下方按钮触发事件，观察状态如何流转。注意看左侧的状态图连线动画。</p>
+            
+            <div class="demo-container">
+                <div class="diagram-view">
+                    <canvas id="fsm-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="char-view">
+                    <div id="char-display" style="font-size: 3em; transition: transform 0.2s;">😐</div>
+                    <div id="char-status" style="margin-top: 10px; color: #FFF;">Idle</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="pixel-btn" id="btn-move">移动 (Move)</button>
+                <button class="pixel-btn" id="btn-jump">跳跃 (Jump)</button>
+                <button class="pixel-btn" id="btn-attack">攻击 (Attack)</button>
+                <button class="pixel-btn" id="btn-stop">停止 (Stop)</button>
+            </div>
+        </div>
+
+        <!-- 3. 实现方式详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon fsm-icon"></div>
+                <h2>3. 两种实现流派</h2>
+            </div>
+            
+            <div class="compare-grid">
+                <div class="compare-item">
+                    <h4>方法一：Switch-Case</h4>
+                    <p><strong>适用：</strong> 简单的对象（如门、陷阱、简单小怪）。</p>
+                    <p><strong>优点：</strong> 写起来快，一个文件搞定。</p>
+                    <p><strong>缺点：</strong> 状态多了代码会变成几千行的“屎山”。</p>
+                </div>
+                <div class="compare-item">
+                    <h4>方法二：状态模式 (State Pattern)</h4>
+                    <p><strong>适用：</strong> 复杂的角色（玩家、Boss）。</p>
+                    <p><strong>优点：</strong> 每个状态一个类，逻辑分离，易于扩展。</p>
+                    <p><strong>缺点：</strong> 类文件变多。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon fsm-icon"></div>
+                <h2>4. C# 代码实战 (State Pattern)</h2>
+            </div>
+            <p>这是最专业的写法，虽然看着代码多，但维护性极佳。</p>
+
+            <div class="code-step">
+                <h3>1. 定义接口</h3>
+                <pre><code class="language-csharp">
+public interface IState {
+    void Enter();  // 进入状态时调用一次
+    void Update(); // 每帧调用
+    void Exit();   // 退出状态时调用一次
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. 状态机控制器</h3>
+                <pre><code class="language-csharp">
+public class StateMachine {
+    private IState currentState;
+
+    public void ChangeState(IState newState) {
+        if (currentState != null)
+            currentState.Exit();
+
+        currentState = newState;
+        currentState.Enter();
+    }
+
+    public void Update() {
+        if (currentState != null)
+            currentState.Update();
+    }
+}
+                </code></pre>
+            </div>
+            
+            <div class="code-step">
+                <h3>3. 具体状态实现</h3>
+                <pre><code class="language-csharp">
+public class JumpState : IState {
+    Player player;
+    public JumpState(Player p) { player = p; }
+
+    public void Enter() {
+        player.PlayAnimation("Jump");
+        player.AddForce(Vector3.up * 5);
+    }
+
+    public void Update() {
+        // 转换条件：落地了就切回 Idle
+        if (player.IsGrounded()) {
+            player.stateMachine.ChangeState(new IdleState(player));
+        }
+    }
+
+    public void Exit() { /* 清理工作 */ }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>FSM 是最基础的，但如果逻辑太复杂（比如几十个状态互联），请考虑升级到 <strong>行为树</strong>。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

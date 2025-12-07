@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态规划 (DP) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>动态规划 (Dynamic Programming)</h1>
+            <p class="subtitle">用“记小本本”的方法解决复杂问题</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dp-icon"></div>
+                <h2>1. 什么是 DP？</h2>
+            </div>
+            <p>动态规划不是什么高深的魔法，它只有两个核心思想：</p>
+            <ol>
+                <li><strong>大事化小 (Optimal Substructure)：</strong> 把大问题拆成小问题。</li>
+                <li><strong>过目不忘 (Overlapping Subproblems)：</strong> 做过的题就记下来，下次不再算一遍。</li>
+            </ol>
+            <div class="compare-grid">
+                <div class="compare-item">
+                    <h4>递归 (Recursion)</h4>
+                    <p>自顶向下。容易重复计算，效率低 (如斐波那契递归 O(2^n))。</p>
+                </div>
+                <div class="compare-item">
+                    <h4>动态规划 (DP)</h4>
+                    <p>自底向上（或带备忘录的递归）。填表记录中间结果，效率高 (O(n))。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dp-icon"></div>
+                <h2>2. 寻宝实验室</h2>
+            </div>
+            <p><strong>目标：</strong> 从左上角走到右下角，只能向右或向下，捡到最多的金币。</p>
+            <p><strong>对比：</strong> 贪心算法 (只看眼前最大的) vs 动态规划 (全局统筹)。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="dp-canvas" width="600" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="pixel-btn" id="btn-greedy">运行贪心算法</button>
+                    <button class="pixel-btn" id="btn-dp">运行动态规划</button>
+                    <button class="pixel-btn" id="btn-reset" style="background-color: #f44336;">重置地图</button>
+                </div>
+                
+                <div class="note-box" id="result-display">
+                    请选择算法开始...
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 原理详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dp-icon"></div>
+                <h2>3. 状态转移方程</h2>
+            </div>
+            <p>这就是 DP 的灵魂公式。对于捡金币问题：</p>
+            <div class="step-card">
+                <h3>定义状态</h3>
+                <p><code>dp[x][y]</code> 表示：从起点走到 (x, y) 能拿到的最大金币数。</p>
+            </div>
+            <div class="step-card">
+                <h3>推导公式</h3>
+                <p>要走到 (x, y)，只能从 (x-1, y) 或者 (x, y-1) 走过来。</p>
+                <p>所以：</p>
+                <pre>dp[x][y] = coins[x][y] + Max(dp[x-1][y], dp[x][y-1])</pre>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dp-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>金币路径问题</h3>
+                <pre><code class="language-csharp">
+public int GetMaxCoins(int[,] grid) {
+    int w = grid.GetLength(0);
+    int h = grid.GetLength(1);
+    int[,] dp = new int[w, h];
+
+    // 初始化起点
+    dp[0, 0] = grid[0, 0];
+
+    // 填表
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            if (x == 0 && y == 0) continue;
+
+            int fromTop = (y > 0) ? dp[x, y - 1] : -1;
+            int fromLeft = (x > 0) ? dp[x - 1, y] : -1;
+
+            dp[x, y] = grid[x, y] + Mathf.Max(fromTop, fromLeft);
+        }
+    }
+
+    return dp[w - 1, h - 1]; // 返回终点值
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>背包系统、最短路径、编辑距离... DP 无处不在！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行为树 (Behavior Tree) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>行为树 (Behavior Tree)</h1>
+            <p class="subtitle">让游戏 AI 像人一样思考：模块化、可复用的智能大脑</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon bt-icon"></div>
+                <h2>1. 什么是行为树？</h2>
+            </div>
+            <p>在行为树出现之前，我们用<strong>有限状态机 (FSM)</strong> 写 AI。状态少还好，一旦复杂起来（比如：巡逻时看到敌人，但血量低要逃跑，逃跑时又发现药包...），连线就会变成“意大利面条”。</p>
+            <p><strong>行为树</strong> 解决了这个问题。它把 AI 的逻辑变成了一棵树：</p>
+            <ul style="list-style-type: square; padding-left: 20px;">
+                <li><strong>从上往下</strong> 执行。</li>
+                <li><strong>模块化</strong>：每个节点都是一个独立的功能（移动、攻击、判断）。</li>
+                <li><strong>状态简单</strong>：每个节点只返回 Success (成功)、Failure (失败) 或 Running (运行中)。</li>
+            </ul>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon bt-icon"></div>
+                <h2>2. 行为树实验室</h2>
+            </div>
+            <p><strong>任务：</strong> 拖动右边的 <span style="color:blue">玩家 (Player)</span>。左边的 <span style="color:red">卫兵 (AI)</span> 会根据行为树做出反应。</p>
+            <p>观察右侧行为树，<strong>黄色高亮</strong>表示当前正在执行的节点。</p>
+            
+            <div class="demo-container">
+                <div class="game-view">
+                    <canvas id="game-canvas" width="400" height="400"></canvas>
+                </div>
+                <div class="tree-view" id="tree-view">
+                    <!-- 树结构将由 JS 动态生成 -->
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="pixel-btn" id="btn-reset">重置位置</button>
+            </div>
+        </div>
+
+        <!-- 3. 核心节点详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon bt-icon"></div>
+                <h2>3. 节点类型详解</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>组合节点 (Composites)</h3>
+                <p>控制执行流程的“管理者”。</p>
+                <ul>
+                    <li><strong>Selector (选择节点 / ?)：</strong> 找替补。按顺序执行子节点，只要有一个<strong>成功</strong>，它就成功（不继续往下）。全失败才返回失败。
+                        <br><i>例子：先尝试“攻击”，如果不行（不在射程），就尝试“移动”。</i>
+                    </li>
+                    <li><strong>Sequence (序列节点 / ->)：</strong> 严谨的流程。按顺序执行子节点，只要有一个<strong>失败</strong>，它就失败。全成功才返回成功。
+                        <br><i>例子：先“瞄准”，成功了再“开火”。</i>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <h3>叶子节点 (Leaves)</h3>
+                <p>真正干活的“打工人”。</p>
+                <ul>
+                    <li><strong>Condition (条件)：</strong> 瞬间判断。比如“看见敌人了吗？”、“血量大于50%吗？”。返回 成功/失败。</li>
+                    <li><strong>Action (动作)：</strong> 执行具体逻辑。比如“巡逻”、“追逐”。可能需要多帧执行，此时返回 <strong>Running</strong>。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon bt-icon"></div>
+                <h2>4. C# 代码实战 (基础框架)</h2>
+            </div>
+            <p>行为树的核心代码非常简洁，甚至不到 100 行。</p>
+
+            <div class="code-step">
+                <h3>1. 基础节点类</h3>
+                <pre><code class="language-csharp">
+public enum NodeState { Running, Success, Failure }
+
+public abstract class Node {
+    public NodeState state;
+    public abstract NodeState Evaluate(); // 核心方法：执行并返回状态
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. Sequence (序列) 实现</h3>
+                <pre><code class="language-csharp">
+public class Sequence : Node {
+    protected List<Node> nodes = new List<Node>();
+
+    public override NodeState Evaluate() {
+        foreach (var node in nodes) {
+            switch (node.Evaluate()) {
+                case NodeState.Failure:
+                    state = NodeState.Failure;
+                    return state; // 只要有一个失败，整体失败
+                case NodeState.Success:
+                    continue; // 成功了就继续下一个
+                case NodeState.Running:
+                    state = NodeState.Running;
+                    return state; // 还在运行，那就等下一帧再来
+            }
+        }
+        state = NodeState.Success; // 都跑完了，大成功
+        return state;
+    }
+}
+                </code></pre>
+            </div>
+            
+            <div class="code-step">
+                <h3>3. Selector (选择) 实现</h3>
+                <pre><code class="language-csharp">
+public class Selector : Node {
+    protected List<Node> nodes = new List<Node>();
+
+    public override NodeState Evaluate() {
+        foreach (var node in nodes) {
+            switch (node.Evaluate()) {
+                case NodeState.Failure:
+                    continue; // 失败了？没关系，试试下一个备选方案
+                case NodeState.Success:
+                    state = NodeState.Success;
+                    return state; // 成功了！收工
+                case NodeState.Running:
+                    state = NodeState.Running;
+                    return state;
+            }
+        }
+        state = NodeState.Failure; // 所有方案都试过了，全挂了
+        return state;
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>行为树不仅用于 AI，剧情流、任务系统甚至 UI 导航都可以用它！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

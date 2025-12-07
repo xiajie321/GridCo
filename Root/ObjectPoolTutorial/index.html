@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对象池 (Object Pooling) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>对象池 (Object Pooling)</h1>
+            <p class="subtitle">告别卡顿！用“借还”代替“买扔”的终极优化方案</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon pool-icon"></div>
+                <h2>1. 为什么要用对象池？</h2>
+            </div>
+            <p>在游戏中，子弹、特效、敌人等对象频繁出现又消失。</p>
+            <p><strong>传统做法 (Instantiate/Destroy)：</strong> 每次需要就 `new` 一个，用完就扔掉。这会产生大量内存垃圾 (Garbage)，导致 GC (垃圾回收) 频繁触发，游戏卡顿。</p>
+            <p><strong>对象池做法：</strong> 预先造好一批对象放在“池子”里。需要时<strong>借出 (Active)</strong>，用完后<strong>归还 (Inactive)</strong>，循环使用。</p>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon pool-icon"></div>
+                <h2>2. 性能实验室</h2>
+            </div>
+            <p>点击按钮发射子弹。对比两种模式下的内存变化。</p>
+            
+            <div class="demo-container">
+                <div class="game-view">
+                    <canvas id="game-canvas" width="400" height="400"></canvas>
+                    <div class="stats" id="game-stats">FPS: 60</div>
+                </div>
+                <div class="memory-view">
+                    <canvas id="memory-canvas" width="400" height="400"></canvas>
+                    <div class="stats" id="memory-stats">内存占用: 0 KB</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="pixel-btn active" id="btn-no-pool">无对象池模式</button>
+                <button class="pixel-btn" id="btn-pool">对象池模式</button>
+                <button class="pixel-btn" id="btn-fire">发射子弹 (Space)</button>
+            </div>
+             <div class="note-box" id="mode-desc">
+                <strong>无对象池模式：</strong> 用完的子弹变成灰色垃圾，内存占用不断上涨，直到触发 GC (红色闪烁) 全部清除。
+            </div>
+        </div>
+
+        <!-- 3. 实现原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon pool-icon"></div>
+                <h2>3. 核心机制</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>数据结构</h3>
+                <p>通常使用 <code>Stack<T></code> (后进先出) 或 <code>Queue<T></code> 来存储闲置对象。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>借出 (Get)</h3>
+                <ol>
+                    <li>检查池里有没有闲置对象？</li>
+                    <li><strong>有：</strong> 拿出来，激活 (SetActive(true))，初始化状态。</li>
+                    <li><strong>没有：</strong> 创建一个新的 (Instantiate)，或者返回空 (如果限制了池大小)。</li>
+                </ol>
+            </div>
+
+            <div class="step-card">
+                <h3>归还 (Release)</h3>
+                <ol>
+                    <li>取消激活 (SetActive(false))。</li>
+                    <li><strong>重要：</strong> 重置状态 (Reset)！把血量回满、速度清零等，防止“脏数据”影响下次使用。</li>
+                    <li>放回容器中。</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon pool-icon"></div>
+                <h2>4. C# 代码实战 (Unity 2021+)</h2>
+            </div>
+            <p>Unity 2021 之后内置了官方对象池 API，非常好用！</p>
+
+            <div class="code-step">
+                <h3>使用 UnityEngine.Pool</h3>
+                <pre><code class="language-csharp">
+using UnityEngine;
+using UnityEngine.Pool;
+
+public class BulletPool : MonoBehaviour {
+    public GameObject bulletPrefab;
+    private ObjectPool<GameObject> pool;
+
+    void Start() {
+        // 初始化池子
+        pool = new ObjectPool<GameObject>(
+            createFunc: () => Instantiate(bulletPrefab), // 怎么创建？
+            actionOnGet: (obj) => obj.SetActive(true),   // 借出时干嘛？
+            actionOnRelease: (obj) => obj.SetActive(false), // 归还时干嘛？
+            actionOnDestroy: (obj) => Destroy(obj),      // 池子满了怎么销毁？
+            collectionCheck: true, // 检查是否重复归还
+            defaultCapacity: 10,
+            maxSize: 100
+        );
+    }
+
+    public void Fire() {
+        GameObject bullet = pool.Get(); // 借出
+        // ... 设置子弹位置和速度 ...
+        // 注意：子弹销毁时不要 Destroy，而是调用 pool.Release(bullet);
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>对象池是游戏优化的第一课。任何高频率生成的物体（子弹、特效、UI列表项）都应该进池子。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

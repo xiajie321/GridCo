@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分治算法 (Divide and Conquer) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>分治算法 (Divide and Conquer)</h1>
+            <p class="subtitle">大事化小，小事化了：解决复杂问题的终极策略</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon split-icon"></div>
+                <h2>1. 什么是分治？</h2>
+            </div>
+            <p>面对一个巨大的问题（比如生成一个无限大的地下城，或者管理 10000 个敌人），直接硬做可能会很累。</p>
+            <p><strong>分治法 (Divide & Conquer)</strong> 的策略是：</p>
+            <ol>
+                <li><strong>Divide (分)：</strong> 把大问题切成两个（或多个）小一点的问题。</li>
+                <li><strong>Conquer (治)：</strong> 递归地解决这些小问题（如果问题够小，直接解决）。</li>
+                <li><strong>Combine (合)：</strong> 把小问题的结果拼起来，变成大问题的答案。</li>
+            </ol>
+            <div class="note-box">
+                经典案例：归并排序 (Merge Sort)、四叉树 (QuadTree)、BSP 树。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon split-icon"></div>
+                <h2>2. 互动演示：BSP 地牢生成</h2>
+            </div>
+            <p><strong>BSP (Binary Space Partitioning)</strong> 是分治法的经典应用。我们将一块大区域不断切分，直到切出许多小房间。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="bsp-canvas" width="600" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="pixel-btn" id="btn-split">1. 递归分割</button>
+                    <button class="pixel-btn" id="btn-rooms">2. 生成房间</button>
+                    <button class="pixel-btn" id="btn-corridors">3. 连接通道</button>
+                    <button class="pixel-btn" id="btn-reset" style="background-color: #f44336;">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 算法原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon split-icon"></div>
+                <h2>3. BSP 生成步骤详解</h2>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-badge">1</div>
+                <h3>Divide: 递归分割</h3>
+                <p>从整个地图矩形开始。随机选择水平或垂直方向，切一刀，分成两个子矩形。对子矩形重复此步骤，直到矩形足够小。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">2</div>
+                <h3>Conquer: 生成房间</h3>
+                <p>在每个最底层的叶子节点（最小的矩形）中，随机生成一个比它稍小的房间。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">3</div>
+                <h3>Combine: 连接通道</h3>
+                <p>这是最关键的一步。我们从树的底部向上回溯。对于每个被切开的父节点，连接它的左右两个子节点的中心点。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon split-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>BSP 节点结构</h3>
+                <pre><code class="language-csharp">
+public class BSPNode {
+    public Rect bounds;
+    public BSPNode left;
+    public BSPNode right;
+    public Rect room; // 叶子节点才有房间
+
+    public BSPNode(Rect r) { bounds = r; }
+
+    // 递归分割
+    public void Split(int depth) {
+        if (depth <= 0) return; // 递归终止条件
+
+        // 随机切分方向 (Horizontal or Vertical)
+        bool splitH = Random.value > 0.5f;
+        
+        if (splitH) {
+            // 水平切
+            float splitY = Random.Range(bounds.yMin, bounds.yMax);
+            left = new BSPNode(new Rect(bounds.x, bounds.y, bounds.width, splitY - bounds.y));
+            right = new BSPNode(new Rect(bounds.x, splitY, bounds.width, bounds.yMax - splitY));
+        } else {
+            // 垂直切
+            // ... 类似逻辑 ...
+        }
+
+        // 继续递归 (Conquer)
+        left.Split(depth - 1);
+        right.Split(depth - 1);
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>分治法不仅能生成地牢，还能用于高效碰撞检测（如八叉树）和 AI 决策。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>
