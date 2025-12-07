@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU 缓存命中 (Cache Hit) - 性能优化的秘密</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>CPU 缓存命中 (Cache Hit)</h1>
+            <p class="subtitle">为什么读取相邻的数据比跳着读要快得多？</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 什么是 CPU 缓存？</h2>
+            <div class="dialogue-box">
+                <p>想象你在图书馆看书（CPU 处理数据）。</p>
+                <p><strong>内存 (RAM)</strong> 就像是图书馆的书架，书很多，但是离你的座位有点远，每次去取都要走一段路。</p>
+                <p><strong>CPU 缓存 (Cache)</strong> 就像是你座位旁边的书桌。虽然只能放几本书，但是伸手就能拿到，速度超快！</p>
+                <p>当你需要一本书时：</p>
+                <ul>
+                    <li>如果书已经在书桌上（缓存命中，Cache Hit），太棒了，瞬间拿到！</li>
+                    <li>如果书还在书架上（缓存未命中，Cache Miss），你得起身走去拿，这要花很多时间。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="mechanism">
+            <h2>1. 缓存行 (Cache Line) 的魔法</h2>
+            <div class="dialogue-box">
+                <p>更聪明的是，当你去书架拿书时，你不会只拿那一本。</p>
+                <p>你会把那本书<strong>周围的一摞书</strong>都抱回来放到书桌上。因为如果你看了第一章，很可能马上就要看第二章。</p>
+                <p>这一摞书，在计算机里就叫做<strong>缓存行 (Cache Line)</strong>，通常是 64 字节。</p>
+            </div>
+            
+            <h3>可视化演示：数据是如何加载的</h3>
+            <p>点击下面的内存块，看看数据是如何成块地进入缓存的。</p>
+            
+            <div class="interactive-area">
+                <div class="stats-panel">
+                    <div class="stat-item" style="color: var(--cache-hit-color)">命中: <span id="hitCount">0</span></div>
+                    <div class="stat-item" style="color: var(--cache-miss-color)">未命中: <span id="missCount">0</span></div>
+                </div>
+                
+                <p><strong>主内存 (Main Memory)</strong></p>
+                <div id="memoryGrid" class="memory-grid">
+                    <!-- JS 生成网格 -->
+                </div>
+                
+                <p><strong>CPU 缓存 (Cache Line) - 当前加载的数据块</strong></p>
+                <div id="cacheLine" class="cache-line-view">
+                    <div class="cache-block">?</div>
+                    <div class="cache-block">?</div>
+                    <div class="cache-block">?</div>
+                    <div class="cache-block">?</div>
+                </div>
+                
+                <button id="resetDemoBtn" class="pixel-btn secondary">重置模拟</button>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="comparison">
+            <h2>2. 顺序访问 vs 随机访问</h2>
+            <p>现在我们来模拟两种读取数据的方式：</p>
+            <ol>
+                <li><strong>顺序访问：</strong> 一个接一个地读（1, 2, 3, 4...）。</li>
+                <li><strong>随机访问：</strong> 跳着读（1, 10, 5, 20...）。</li>
+            </ol>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <button id="runSequentialBtn" class="pixel-btn">▶ 运行顺序访问</button>
+                    <button id="runRandomBtn" class="pixel-btn">▶ 运行随机访问</button>
+                </div>
+                <div id="simulationLog" class="dialogue-box" style="width: 90%; height: 100px; overflow-y: auto; font-family: monospace;">
+                    点击按钮开始模拟...
+                </div>
+            </div>
+            
+            <div class="dialogue-box">
+                <p><strong>结论：</strong> 顺序访问能充分利用缓存行机制，大大提高命中率。而随机访问（如链表、分散的对象）会导致频繁的 Cache Miss，CPU 大部分时间都在等待数据从内存送过来。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="code-example">
+            <h2>3. C# 代码实战：Class vs Struct</h2>
+            <p>在 C# 中，使用 <code>class</code>（引用类型）数组时，数据在内存中可能是分散的。而使用 <code>struct</code>（值类型）数组时，数据是紧密排列的。</p>
+            <p>这直接影响性能！</p>
+
+            <div class="dialogue-box" style="background-color: #E3F2FD; border-color: #2196F3;">
+                <h3>🤔 为什么存储方式不同？</h3>
+                <p><strong>Struct (值类型) 数组：</strong> 就像是<strong>联排别墅</strong>。房子（数据）一栋挨着一栋直接建在地上。你要找第3栋，它紧挨着第2栋。</p>
+                <div style="display: flex; gap: 5px; margin: 10px 0; justify-content: center;">
+                    <div style="background: #FF9800; color: white; padding: 5px 10px; border: 2px solid #000;">Data</div>
+                    <div style="background: #FF9800; color: white; padding: 5px 10px; border: 2px solid #000;">Data</div>
+                    <div style="background: #FF9800; color: white; padding: 5px 10px; border: 2px solid #000;">Data</div>
+                    <div style="background: #FF9800; color: white; padding: 5px 10px; border: 2px solid #000;">Data</div>
+                </div>
+                <p><strong>Class (引用类型) 数组：</strong> 就像是一个<strong>通讯录</strong>。数组里存的不是房子，而是写着地址的纸条（引用）。你要找第3栋，得先读纸条上的地址，然后跑去城市的另一个角落找到那栋房子。房子可能散落在各处。</p>
+                <div style="display: flex; gap: 5px; margin: 10px 0; justify-content: center; align-items: center;">
+                    <div style="background: #eee; padding: 5px; border: 2px solid #000;">Ref</div>
+                    <span>➜</span>
+                    <div style="background: #FF9800; color: white; padding: 5px; border: 2px solid #000; font-size: 0.8em;">Data</div>
+                    <span style="margin: 0 10px;">|</span>
+                    <div style="background: #eee; padding: 5px; border: 2px solid #000;">Ref</div>
+                    <span>➜</span>
+                    <div style="background: #FF9800; color: white; padding: 5px; border: 2px solid #000; font-size: 0.8em;">Data</div>
+                </div>
+            </div>
+            
+            <div class="code-container">
+<pre><code class="language-csharp">
+// 场景：我们需要处理 100万 个点
+const int COUNT = 1000000;
+
+// 1. 使用 Class (引用类型)
+// 数据分散在堆内存的各个角落
+class PointClass { public int x, y; }
+PointClass[] pointsClass = new PointClass[COUNT];
+
+// 初始化...
+// 处理：
+long sum = 0;
+for (int i = 0; i < COUNT; i++) {
+    // 每次访问 pointsClass[i] 可能都要去内存的不同地方找
+    // 容易发生 Cache Miss
+    sum += pointsClass[i].x + pointsClass[i].y;
+}
+
+// ==========================================
+
+// 2. 使用 Struct (值类型)
+// 数据在内存中是连续的一大块
+struct PointStruct { public int x, y; }
+PointStruct[] pointsStruct = new PointStruct[COUNT];
+
+// 初始化...
+// 处理：
+long sum = 0;
+for (int i = 0; i < COUNT; i++) {
+    // 数据紧挨着，读第一个时，后面的也被加载进缓存了
+    // Cache Hit 极高！
+    sum += pointsStruct[i].x + pointsStruct[i].y;
+}
+</code></pre>
+            </div>
+            
+            <div class="dialogue-box">
+                <p><strong>性能差距：</strong> 在这种简单计算下，<code>struct</code> 数组通常比 <code>class</code> 数组快 2 到 5 倍！这就是 Data-Oriented Design (面向数据设计) 的核心理念之一。</p>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>这就是为什么我们在高性能编程（如游戏开发）中喜欢用数组和结构体，而不是链表和类对象。</p>
+            <p>让数据紧凑排列，让 CPU 开心，你的程序就会飞起来！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
