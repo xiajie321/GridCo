@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双网格系统 (Dual Grid) - 自动切片教程</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn" style="text-decoration: none;">← 返回目录</a>
+        </div>
+        
+        <header class="pixel-box header">
+            <h1>双网格系统 (Dual Grid)</h1>
+            <p class="subtitle">告别47张图块，用16张图搞定完美地图！</p>
+        </header>
+
+        <!-- 1. 痛点分析 -->
+        <section class="pixel-box content-section">
+            <h2>1. 为什么我们需要这个？</h2>
+            <div class="dialogue-box">
+                <p>如果你尝试过制作一个 Tilemap 游戏（比如 RPG 或 策略游戏），你一定遇到过这个问题：</p>
+                <p><strong>"我要怎么处理草地和水的边界？"</strong></p>
+            </div>
+            
+            <p>最笨的方法是只用纯色块，但那样太丑了。如果我们想要平滑的过渡边界，传统方法（Blob Tileset）需要你考虑一个格子周围的 <strong>8个邻居</strong>。</p>
+            
+            <div class="grid-comparison">
+                <div class="grid-item">
+                    <h3>普通方法 (Blob)</h3>
+                    <p>需要判断 8 个方向</p>
+                    <div style="background:#eee; padding:10px; border:2px solid #000; display: inline-block;">
+                        <div style="display:grid; grid-template-columns: repeat(3, 30px); gap:2px;">
+                            <div style="background:#ddd; height:30px;">↖</div><div style="background:#ddd; height:30px;">↑</div><div style="background:#ddd; height:30px;">↗</div>
+                            <div style="background:#ddd; height:30px;">←</div><div style="background:#FF6B6B; height:30px; color:#fff; font-weight:bold;">我</div><div style="background:#ddd; height:30px;">→</div>
+                            <div style="background:#ddd; height:30px;">↙</div><div style="background:#ddd; height:30px;">↓</div><div style="background:#ddd; height:30px;">↘</div>
+                        </div>
+                    </div>
+                    <p>组合数量 = 2^8 = <strong>256 种情况</strong><br>(简化后也需要 47 张图)</p>
+                </div>
+                
+                <div class="grid-item">
+                    <h3>双网格方法 (Dual Grid)</h3>
+                    <p>只需要判断 4 个顶点</p>
+                    <div style="background:#eee; padding:10px; border:2px solid #000; display: inline-block; position: relative;">
+                        <div style="width: 60px; height: 60px; background: #FF6B6B; margin: 15px auto; border: 2px dashed #333; position: relative;">
+                            <div style="position: absolute; top:-10px; left:-10px; width:20px; height:20px; background:#4ECDC4; border:2px solid #000; border-radius:50%;"></div>
+                            <div style="position: absolute; top:-10px; right:-10px; width:20px; height:20px; background:#4ECDC4; border:2px solid #000; border-radius:50%;"></div>
+                            <div style="position: absolute; bottom:-10px; left:-10px; width:20px; height:20px; background:#4ECDC4; border:2px solid #000; border-radius:50%;"></div>
+                            <div style="position: absolute; bottom:-10px; right:-10px; width:20px; height:20px; background:#4ECDC4; border:2px solid #000; border-radius:50%;"></div>
+                        </div>
+                    </div>
+                    <p>组合数量 = 2^4 = <strong>16 种情况</strong><br>(只需要 16 张图！)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 原理解析 -->
+        <section class="pixel-box content-section">
+            <h2>2. 魔法原理：错位网格</h2>
+            <p>双网格的核心思想是：<strong>逻辑网格</strong> 和 <strong>渲染网格</strong> 错开半个格子。</p>
+            
+            <div class="dialogue-box">
+                <p>想象你在铺地砖：</p>
+                <ul style="list-style-type: none;">
+                    <li>🟦 <strong>逻辑层（数据）：</strong> 你在格子里填"草"或"水"。这是你鼠标点击的地方。</li>
+                    <li>🟧 <strong>渲染层（显示）：</strong> 游戏真正画出来的图，其实是画在逻辑格子的<strong>交点</strong>上！</li>
+                </ul>
+            </div>
+
+            <p>请尝试移动鼠标，观察两个网格的关系：</p>
+            
+            <div class="interactive-area">
+                <canvas id="principleCanvas" width="400" height="300"></canvas>
+                <div class="controls">
+                    <label><input type="checkbox" id="showLogicGrid" checked> 显示逻辑网格(蓝)</label>
+                    <label><input type="checkbox" id="showRenderGrid" checked> 显示渲染网格(红)</label>
+                </div>
+                <p class="hint-box">注意看：红色的格子中心，刚好压在蓝色格子的<strong>十字交叉点</strong>上！</p>
+            </div>
+        </section>
+
+        <!-- 3. 16张图块集 -->
+        <section class="pixel-box content-section">
+            <h2>3. 准备美术素材</h2>
+            <p>因为每个渲染格子的四个角分别对应四个逻辑格子的状态，所以我们只需要画出这 4 个角的组合。</p>
+            <p>0 = 水, 1 = 草。组合如下（二进制计数）：</p>
+            
+            <div class="interactive-area">
+                <canvas id="tilesetCanvas" width="512" height="64"></canvas>
+                <p>这就是我们要用到的标准 16 张图块集 (Marching Squares)。</p>
+            </div>
+        </section>
+
+        <!-- 4. 动手实践 -->
+        <section class="pixel-box content-section">
+            <h2>4. 见证奇迹时刻</h2>
+            <p>现在，并在下方的网格中绘制！左键画草，右键画水。</p>
+            <p>你会发现，无论你怎么画，边缘都是完美自动连接的！</p>
+
+            <div class="interactive-area">
+                <div class="controls">
+                    <button class="pixel-btn" id="clearMapBtn">清空地图</button>
+                    <button class="pixel-btn secondary" id="randomMapBtn">随机生成</button>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="editorCanvas" width="400" height="400"></canvas>
+                    <div id="cursorHighlight" style="position: absolute; pointer-events: none; border: 2px solid yellow; display: none;"></div>
+                </div>
+                <div class="controls">
+                    <label><input type="checkbox" id="editorShowGrid" checked> 辅助线</label>
+                    <span id="coordDisplay" style="font-family: monospace;">X: 0, Y: 0</span>
+                </div>
+            </div>
+            
+            <div class="dialogue-box">
+                <h3>到底发生了什么？</h3>
+                <p>当你点击一个格子时，其实你改变的是<strong>逻辑数据</strong>。</p>
+                <p>而在渲染时，每个图块会查看它周围 4 个顶点的逻辑数据：</p>
+                <p class="math">index = (TL) + (TR * 2) + (BL * 4) + (BR * 8)</p>
+                <p>算出来的 index (0-15) 就直接对应上面那 16 张图！简单吧？</p>
+            </div>
+        </section>
+
+        <!-- 6. 进阶优化 -->
+        <section class="pixel-box content-section">
+            <h2>6. 进阶：极致优化 (只需 5 张图)</h2>
+            <div class="dialogue-box">
+                <p><strong>等等，16 张图还是太多了？</strong></p>
+                <p>其实，利用<strong>旋转和镜像</strong>，美术只需要画 <strong>5 张</strong> 基础素材！</p>
+            </div>
+            
+            <p>观察一下图集，你会发现很多图块只是转了个角度而已。比如"左上角是草"和"右上角是草"，其实是同一张图旋转 90 度。</p>
+            
+            <div class="interactive-area">
+                <p>基础形状归类：</p>
+                <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <div class="grid-item">
+                        <div style="font-weight:bold;">1. 单角</div>
+                        <canvas id="baseShape1" width="64" height="64"></canvas>
+                        <p>旋转可得 4 种</p>
+                    </div>
+                    <div class="grid-item">
+                        <div style="font-weight:bold;">2. 边</div>
+                        <canvas id="baseShape2" width="64" height="64"></canvas>
+                        <p>旋转可得 4 种</p>
+                    </div>
+                    <div class="grid-item">
+                        <div style="font-weight:bold;">3. 对角</div>
+                        <canvas id="baseShape3" width="64" height="64"></canvas>
+                        <p>旋转可得 2 种</p>
+                    </div>
+                    <div class="grid-item">
+                        <div style="font-weight:bold;">4. 缺角</div>
+                        <canvas id="baseShape4" width="64" height="64"></canvas>
+                        <p>旋转可得 4 种</p>
+                    </div>
+                    <div class="grid-item">
+                        <div style="font-weight:bold;">5. 全满</div>
+                        <canvas id="baseShape5" width="64" height="64"></canvas>
+                        <p>无需旋转</p>
+                    </div>
+                </div>
+                <p class="hint-box">再加上一张"全空"的水面，总共 6 张图就能覆盖所有情况！</p>
+            </div>
+        </section>
+
+        <!-- 5. 代码实现 -->
+        <section class="pixel-box content-section">
+            <h2>5. C# 代码实现</h2>
+            <p>在 Unity 或 Godot 中实现这个逻辑非常简单：</p>
+
+            <div class="code-container">
+<pre><code class="language-csharp">
+public class DualGridMapper
+{
+    // 逻辑数据：0=水, 1=草
+    private int[,] logicMap;
+    
+    // 计算某个渲染位置(x, y)应该用哪张图
+    public int GetTileIndex(int x, int y)
+    {
+        // 获取四个角的逻辑类型 (0或1)
+        // 注意：渲染网格(x,y) 对应 逻辑网格(x,y) 的左上角及周边
+        
+        int f0 = GetLogic(x, y);         // 左上 (Top-Left)
+        int f1 = GetLogic(x + 1, y);     // 右上 (Top-Right)
+        int f2 = GetLogic(x, y + 1);     // 左下 (Bottom-Left)
+        int f3 = GetLogic(x + 1, y + 1); // 右下 (Bottom-Right)
+
+        // 二进制权重计算索引：1, 2, 4, 8
+        // 这样会得到一个 0-15 的整数
+        return f0 + (f1 * 2) + (f2 * 4) + (f3 * 8);
+    }
+
+    // 防止数组越界的辅助函数
+    private int GetLogic(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height) 
+            return 0; // 默认边界外是水
+        return logicMap[x, y];
+    }
+}
+</code></pre>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>这就是双网格系统的奥秘！</p>
+            <p>既省美术资源，又省代码逻辑，还不快去试试？</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

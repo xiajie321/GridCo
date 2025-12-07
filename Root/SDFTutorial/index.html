@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有向距离场 (SDF) - 图形学的魔法尺子</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn" style="text-decoration: none;">← 返回目录</a>
+        </div>
+        
+        <header class="pixel-box header">
+            <h1>有向距离场 (SDF)</h1>
+            <p class="subtitle">无限放大不模糊？图形学的魔法尺子！</p>
+        </header>
+
+        <!-- 1. 痛点分析：位图 vs SDF -->
+        <section class="pixel-box content-section">
+            <h2>1. 为什么我们需要 SDF？</h2>
+            <div class="dialogue-box">
+                <p>你在游戏中见过这种模糊、锯齿严重的字体或图标吗？</p>
+                <p><strong>"为什么图片放大后会变糊？"</strong></p>
+            </div>
+            
+            <p>普通的图片（位图）记录的是<strong>颜色</strong>。当你放大时，像素被拉伸，边缘就变糊了。</p>
+            <p>而 SDF 记录的是<strong>距离</strong>。它不记录颜色，而是记录"离边缘还有多远"。</p>
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+                <label>放大倍数: <input type="range" id="zoomSlider" min="1" max="10" step="0.1" value="1"></label>
+                <span id="zoomValue">1.0x</span>
+            </div>
+            <div class="grid-comparison">
+                <div class="grid-item">
+                    <h3>普通位图</h3>
+                    <p>放大后模糊不清</p>
+                    <div class="interactive-area">
+                        <canvas id="bitmapCanvas" width="200" height="200"></canvas>
+                        <p>记录像素颜色</p>
+                    </div>
+                </div>
+                
+                <div class="grid-item">
+                    <h3>SDF 技术</h3>
+                    <p>放大依然清晰锐利</p>
+                    <div class="interactive-area">
+                        <canvas id="sdfPreviewCanvas" width="200" height="200"></canvas>
+                        <p>记录距离信息</p>
+                    </div>
+                </div>
+            </div>
+            <p class="hint-box">拖动滑块放大，观察两种渲染方式的区别！</p>
+        </section>
+
+        <!-- 2. 基础原理：什么是"距离场"？ -->
+        <section class="pixel-box content-section">
+            <h2>2. 第一步：理解"距离"</h2>
+            <p>想象你在操场上画了一个圆圈。</p>
+            <p><strong>距离场</strong>就是问操场上的每一个人："你离这个圆圈的边缘有多远？"</p>
+            
+            <div class="interactive-area">
+                <p>移动鼠标，看看你离圆心有多远！</p>
+                <canvas id="distanceCanvas" width="400" height="300"></canvas>
+                <div class="controls">
+                    <span id="distanceValue" style="font-family: monospace; font-size: 1.2em;">距离: 0</span>
+                </div>
+                <p class="hint-box">颜色越亮代表距离越近，越暗代表距离越远。</p>
+            </div>
+        </section>
+
+        <!-- 3. 进阶原理：什么是"有向"？ -->
+        <section class="pixel-box content-section">
+            <h2>3. 第二步：什么是"有向" (Signed)？</h2>
+            <div class="dialogue-box">
+                <p>普通的距离只有正数（比如离家 100 米）。</p>
+                <p>但在 SDF 中，我们规定：</p>
+                <ul style="list-style-type: none;">
+                    <li>➕ <strong>正数 (外部)：</strong> 你在圆圈外面。</li>
+                    <li>➖ <strong>负数 (内部)：</strong> 你在圆圈里面。</li>
+                    <li>0️⃣ <strong>零 (边缘)：</strong> 你刚好踩在线上。</li>
+                </ul>
+            </div>
+
+            <p>这个正负号非常关键！它让我们知道像素到底是在形状里面还是外面。</p>
+            
+            <div class="interactive-area">
+                <canvas id="signedCanvas" width="400" height="300"></canvas>
+                <div class="controls">
+                    <label><input type="checkbox" id="showNumbers" checked> 显示数值</label>
+                </div>
+                <p>红色代表负数(内部)，绿色代表正数(外部)，白色线是 0 (边缘)。</p>
+            </div>
+        </section>
+
+        <!-- 4. SDF 的魔法应用 -->
+        <section class="pixel-box content-section">
+            <h2>4. SDF 的超能力：即时特效</h2>
+            <p>既然我们知道每个像素离边缘的距离，我们就可以通过简单的数学做很多特效！</p>
+            <p>比如：<strong>"只要距离小于 5 的地方都涂成红色"</strong> -> 这就是描边！</p>
+            
+            <div class="interactive-area">
+                <canvas id="effectCanvas" width="400" height="400"></canvas>
+                <div class="controls" style="flex-direction: column; align-items: stretch; width: 80%;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <label>阈值 (形状大小): <input type="range" id="thresholdSlider" min="0" max="1" step="0.01" value="0.5"></label>
+                        <span id="thresholdValue">0.5</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <label>平滑度 (抗锯齿): <input type="range" id="smoothSlider" min="0.01" max="0.2" step="0.01" value="0.05"></label>
+                        <span id="smoothValue">0.05</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <label>描边宽度: <input type="range" id="outlineSlider" min="0" max="0.2" step="0.01" value="0"></label>
+                        <span id="outlineValue">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <label>阴影偏移: <input type="range" id="shadowSlider" min="0" max="0.1" step="0.01" value="0"></label>
+                        <span id="shadowValue">0</span>
+                    </div>
+                </div>
+                <p class="hint-box">这只是一张简单的黑白图，通过数学计算就能变成各种样子的 UI！</p>
+            </div>
+        </section>
+
+        <!-- 5. 代码实现 -->
+        <section class="pixel-box content-section">
+            <h2>5. C# Shader 代码示例</h2>
+            <p>在 Shader 中使用 SDF 非常简单。假设你有一张 SDF 贴图，采样出的值是 `dist`。</p>
+
+            <div class="code-container">
+<pre><code class="language-csharp">
+// 在 Fragment Shader 中
+float4 frag(v2f i) : SV_Target
+{
+    // 1. 采样 SDF 贴图 (通常存在 Alpha 通道)
+    float distance = tex2D(_MainTex, i.uv).a;
+    
+    // 2. 设置边缘阈值 (0.5 是标准边缘)
+    // 使用 smoothstep 进行平滑过渡，消除锯齿
+    float alpha = smoothstep(0.5 - _Smoothing, 0.5 + _Smoothing, distance);
+    
+    // 3. 描边效果 (可选)
+    // 如果距离在 (0.5 - 宽度) 到 0.5 之间，就是描边
+    float outline = smoothstep(0.5 - _OutlineWidth - _Smoothing, 
+                             0.5 - _OutlineWidth + _Smoothing, 
+                             distance);
+                             
+    // 组合颜色：如果是描边区域显示描边色，核心区域显示主色
+    float4 col = lerp(_OutlineColor, _MainColor, alpha);
+    col.a = outline; // 最终透明度由描边范围决定
+    
+    return col;
+}
+</code></pre>
+            </div>
+            <p>这就是 TextMeshPro 能够渲染超清文字的核心原理！</p>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>SDF 不仅能用于文字，还能用于生成式艺术、光线步进 (Ray Marching) 等等。</p>
+            <p>掌握了距离场，你就掌握了控制图形边缘的钥匙！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

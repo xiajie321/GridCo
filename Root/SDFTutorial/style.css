@@ -1,0 +1,199 @@
+:root {
+    --bg-color: #89CFF0;
+    --card-bg: #FFFFFF;
+    --text-color: #333333;
+    --border-color: #000000;
+    --accent-color: #FF6B6B;
+    --secondary-color: #4ECDC4;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --border-width: 4px;
+    --shadow-offset: 6px;
+}
+
+body {
+    font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* 像素风格盒子 */
+.pixel-box {
+    background-color: var(--card-bg);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
+    padding: 20px;
+    position: relative;
+}
+
+.header {
+    text-align: center;
+    background-color: #FFD93D;
+}
+
+h1 {
+    margin: 10px 0;
+    font-size: 2.5em;
+    text-shadow: 3px 3px 0px rgba(255,255,255,0.5);
+}
+
+.subtitle {
+    font-size: 1.2em;
+    color: #555;
+}
+
+h2 {
+    border-bottom: 4px solid var(--bg-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+h3 {
+    margin-top: 20px;
+    color: #333;
+    border-left: 5px solid var(--accent-color);
+    padding-left: 10px;
+}
+
+/* 解释框 */
+.dialogue-box {
+    background-color: #f0f0f0;
+    border: 2px dashed var(--border-color);
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.hint-box {
+    background-color: #fff8e1;
+    border: 2px solid #ffb300;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+/* 交互区域 */
+.interactive-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+    background-color: #f9f9f9;
+    border: 2px solid var(--border-color);
+    padding: 15px;
+}
+
+canvas {
+    background-color: #fff;
+    border: 2px solid var(--border-color);
+    image-rendering: pixelated;
+    cursor: crosshair;
+    max-width: 100%;
+    box-shadow: 4px 4px 0px #ddd;
+}
+
+.controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* 像素按钮 */
+.pixel-btn {
+    font-family: 'ZCOOL KuaiLe', cursive;
+    background-color: var(--accent-color);
+    color: white;
+    border: 3px solid var(--border-color);
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px var(--border-color);
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.pixel-btn:hover {
+    background-color: #FF5252;
+}
+
+.pixel-btn.secondary {
+    background-color: var(--secondary-color);
+}
+
+.pixel-btn.secondary:hover {
+    background-color: #3dbdb4;
+}
+
+/* 网格展示容器 */
+.grid-comparison {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.grid-item {
+    text-align: center;
+    flex: 1;
+    min-width: 250px;
+}
+
+/* 代码块 */
+.code-container {
+    background-color: #2d2d2d;
+    color: #ccc;
+    padding: 15px;
+    border: var(--border-width) solid var(--border-color);
+    overflow-x: auto;
+    text-align: left;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+.math {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    background-color: #eee;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #d63384;
+}
+
+.footer {
+    text-align: center;
+    background-color: #eee;
+    margin-top: 20px;
+}
+
+/* C# 代码高亮 */
+.keyword { color: #569cd6; }
+.type { color: #4ec9b0; }
+.string { color: #ce9178; }
+.comment { color: #6a9955; }
+.number { color: #b5cea8; }
+.method { color: #dcdcaa; }
+
+/* 响应式 */
+@media (max-width: 600px) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.8em; }
+    .grid-comparison { flex-direction: column; }
+}

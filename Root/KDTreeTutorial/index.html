@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KD树碰撞检测 - 保姆级教程</title>
+    <link rel="stylesheet" href="../GridCollisionTutorial/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        .tree-node {
+            display: inline-block;
+            border: 2px solid #000;
+            padding: 5px;
+            margin: 2px;
+            background: #fff;
+            text-align: center;
+            font-size: 12px;
+        }
+        .tree-level-0 { border-color: #FF6B6B; } /* X轴分割颜色 */
+        .tree-level-1 { border-color: #4ECDC4; } /* Y轴分割颜色 */
+        
+        #step-viz {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>KD树 (KD-Tree)</h1>
+            <p class="subtitle">左右互搏，层层筛选！</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 什么是KD树？</h2>
+            <div class="dialogue-box">
+                <p>想象你在切一块披萨。</p>
+                <p>四叉树是每次把一块切成<strong>四小块</strong>（田字格）。</p>
+                <p>而 <strong>KD树</strong> 更有个性：它每次只切<strong>一刀</strong>！</p>
+                <p>第一刀竖着切（把世界分成左右），第二刀在两边分别横着切（分成上下），第三刀再竖着切... 就这样交替进行，直到每个小块里的东西足够少。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step1">
+            <h2>1. 怎么切？(分割规则)</h2>
+            <p>KD树的秘诀在于<strong>交替切割</strong>。</p>
+            <p>在二维世界里，我们按照 <strong>X -> Y -> X -> Y</strong> 的顺序轮流切。</p>
+            <p>而且我们不瞎切，每次都选<strong>中位数</strong>（最中间的那个点）来切，这样保证树是平衡的（左右两边点一样多）。</p>
+            
+            <div class="interactive-area">
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-weight: bold;">空间分割视角</p>
+                        <canvas id="buildCanvas" width="400" height="400"></canvas>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-weight: bold;">数据结构视角</p>
+                        <canvas id="treeVizCanvas" width="400" height="400"></canvas>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="addPointsBtn" class="pixel-btn">随机撒点</button>
+                    <button id="nextStepBtn" class="pixel-btn">切一刀！(下一步)</button>
+                    <button id="resetBuildBtn" class="pixel-btn">重来</button>
+                </div>
+                <div id="buildInfo" class="info-panel">请先撒点...</div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step2">
+            <h2>2. 找最近的邻居 (Nearest Neighbor)</h2>
+            <p>建立好树之后，我们要找离鼠标最近的点。</p>
+            <p>KD树的厉害之处在于<strong>剪枝</strong>：如果鼠标离分割线太远，那分割线另一边的所有点我们就完全不用看了！</p>
+            <div class="interactive-area">
+                <canvas id="searchCanvas" width="400" height="400"></canvas>
+                <div class="controls">
+                    <label><input type="checkbox" id="showSearchVis" checked> 显示搜索范围圈</label>
+                </div>
+                <div id="searchInfo" class="info-panel">
+                    移动鼠标寻找最近点...
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step3">
+            <h2>3. 性能大比拼 (PK时间)</h2>
+            <p><strong>暴力法</strong>：我要把所有点都量一遍距离，累死宝宝了。</p>
+            <p><strong>KD树</strong>：我只需要看相关的区域，其他的直接忽略！</p>
+            <p>试着增加点的数量，看看谁更快！</p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <label>点数量: <input type="range" id="pointCount" min="1000" max="30000" step="1000" value="10000"></label>
+                    <span id="pointCountDisplay">10000</span>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="battleCanvas" width="600" height="400"></canvas>
+                    <div id="performanceOverlay" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border: 2px solid #000; font-family: 'Consolas', monospace; pointer-events: none;">
+                        <div style="color: #FF6B6B;">暴力法: <span id="checkCountBrute">0</span> 次检测 (找到 <span id="bruteFound">0</span> 个)</div>
+                        <div style="color: #4ECDC4;">KD树: <span id="checkCountKD">0</span> 次检测 (找到 <span id="kdFound">0</span> 个)</div>
+                        <div style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;">
+                            <span id="efficiencyGain" style="font-weight:bold; color:#333;">效率提升: 0x</span>
+                        </div>
+                        <div id="resultMatch" style="font-weight:bold; color:green; display:none; margin-top:5px;">结果一致 √</div>
+                        <div id="resultMismatch" style="font-weight:bold; color:red; display:none; margin-top:5px;">结果不一致 ×</div>
+                    </div>
+                </div>
+                <p class="hint">移动鼠标进行范围查询（高亮附近的点）</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="code-demo">
+            <h2>4. C# 代码实现</h2>
+            <p>这是最核心的构建部分。注意看 <code>axis</code> 是如何取模切换的！</p>
+            
+            <div class="code-container">
+<pre><code class="language-csharp">
+public class KDNode
+{
+    public Vector2 point;     // 当前节点存储的点
+    public KDNode left;       // 左/下 子树
+    public KDNode right;      // 右/上 子树
+    public int axis;          // 0代表X轴，1代表Y轴
+
+    public KDNode(List<Vector2> points, int depth = 0)
+    {
+        // 1. 决定当前是切X轴还是Y轴 (0:X, 1:Y)
+        this.axis = depth % 2;
+
+        // 2. 找到中位数（排序后取中间）
+        // 这里为了简单使用了Lambda排序，实际工程可用快速选择算法优化
+        if (axis == 0)
+            points.Sort((a, b) => a.x.CompareTo(b.x));
+        else
+            points.Sort((a, b) => a.y.CompareTo(b.y));
+
+        int midIndex = points.Count / 2;
+        this.point = points[midIndex];
+
+        // 3. 递归构建左子树
+        List<Vector2> leftPoints = points.GetRange(0, midIndex);
+        if (leftPoints.Count > 0)
+            this.left = new KDNode(leftPoints, depth + 1);
+
+        // 4. 递归构建右子树
+        List<Vector2> rightPoints = points.GetRange(midIndex + 1, points.Count - (midIndex + 1));
+        if (rightPoints.Count > 0)
+            this.right = new KDNode(rightPoints, depth + 1);
+    }
+}
+</code></pre>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>KD树在多维空间（3D、4D...）更加强大哦！</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP 轴扫掠算法 - 保姆级教程</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn" style="text-decoration: none; display: inline-block;">← 返回目录</a>
+        </div>
+        <header class="pixel-box header">
+            <h1>SAP 轴扫掠算法</h1>
+            <p class="subtitle">Sort and Sweep: 像扫地一样检测碰撞！</p>
+        </header>
+
+        <section class="pixel-box content-section" id="intro">
+            <h2>0. 什么是 SAP？</h2>
+            <div class="dialogue-box">
+                <p>想象你在排队买票，你只会可能挤到你前面或者后面的人，对吧？你不可能突然挤到队伍最末尾的人。</p>
+                <p><strong>SAP (Sweep and Prune)</strong> 就是利用这个原理！</p>
+                <p>如果物体在 X 轴上都没有重叠，那它们在 2D 空间里肯定不会相撞。所以我们把所有物体按 X 轴坐标排个序，只检查相邻的物体。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step1">
+            <h2>1. 投影与排序 (Sort)</h2>
+            <p>第一步，把所有游戏物体"拍扁"到 X 轴上，看看它们的范围（最小 X 到 最大 X）。</p>
+            <p>然后，根据它们的<strong>最小 X 坐标 (Min X)</strong> 进行从小到大排序。</p>
+            <p>点击下方区域添加物体，观察下方的排序列表如何变化：</p>
+            
+            <div class="interactive-area">
+                <canvas id="sortCanvas" width="600" height="300"></canvas>
+                <div class="controls">
+                    <button id="addSortObjBtn" class="pixel-btn">添加物体</button>
+                    <button id="clearSortObjBtn" class="pixel-btn">清空</button>
+                </div>
+                <div id="sortListDisplay" style="font-family: monospace; background: #eee; padding: 10px; border: 2px solid #000; width: 90%;">
+                    排序列表: []
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <p>列表中的每个元素代表一个物体。排序后，位置相近的物体在列表中也相邻。</p>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step2">
+            <h2>2. 扫描与裁剪 (Sweep & Prune)</h2>
+            <p>现在我们有了一个排好序的列表。我们用一根虚拟的<strong>"扫掠线"</strong>从左向右扫描。</p>
+            <div class="dialogue-box">
+                <h3>核心逻辑：</h3>
+                <p>1. 我们维护一个 <strong>"活跃列表" (Active List)</strong>，里面装着当前可能发生碰撞的物体。</p>
+                <p>2. 遍历排好序的物体列表：</p>
+                <ul style="list-style: none;">
+                    <li>👉 对于当前物体 <strong>Current</strong>：</li>
+                    <li>🗑️ <strong>裁剪 (Prune)</strong>: 把活跃列表中那些 <strong>Max X < Current.Min X</strong> 的物体踢出去。（因为它们在当前物体左边太远了，不可能碰到）</li>
+                    <li>💥 <strong>检测 (Check)</strong>: 剩下的活跃物体都可能和 Current 相撞，去检测它们！</li>
+                    <li>➕ <strong>加入 (Add)</strong>: 把 Current 加入活跃列表。</li>
+                </ul>
+            </div>
+            
+            <p>拖动下方的滑块移动扫掠线，观察活跃列表的变化：</p>
+
+            <div class="interactive-area">
+                <canvas id="sweepCanvas" width="600" height="300"></canvas>
+                <div class="controls">
+                    <label>扫掠线进度: </label>
+                    <input type="range" id="sweepSlider" min="0" max="600" value="0" style="width: 300px;">
+                </div>
+                <div id="activeListDisplay" style="font-family: monospace; background: #eee; padding: 10px; border: 2px solid #000; width: 90%;">
+                    活跃列表 (Active List): []
+                </div>
+                <div id="collisionDisplay" style="color: red; font-weight: bold; min-height: 20px;">
+                    潜在碰撞对: 无
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="step3">
+            <h2>3. 性能大比拼 (Battle!)</h2>
+            <p>是时候展示真正的技术了！我们将放入大量移动物体。</p>
+            <p><strong>暴力法：</strong> 每个人都和所有人检测一遍。O(N²)</p>
+            <p><strong>SAP法：</strong> 只检测 X 轴重叠的物体。O(N log N)</p>
+            
+            <div class="interactive-area">
+                <div class="controls">
+                    <button id="toggleModeBtn" class="pixel-btn">切换模式：当前[暴力法]</button>
+                    <button id="add50Btn" class="pixel-btn">+50 物体</button>
+                    <button id="resetBattleBtn" class="pixel-btn">重置</button>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="battleCanvas" width="600" height="400"></canvas>
+                    <div id="perfStats" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border: 2px solid #000; font-family: 'Consolas', monospace;">
+                        模式: 暴力法<br>
+                        物体: 0<br>
+                        检测次数: 0
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pixel-box content-section" id="code-demo">
+            <h2>4. C# 代码实现</h2>
+            <p>这是在 Unity 等引擎中实现 SAP 的核心代码结构：</p>
+            
+            <div class="code-container">
+<pre><code class="language-csharp">
+public class SAPCollision
+{
+    // 物体包装类，包含边界信息
+    public class SAPObject
+    {
+        public int ID;
+        public float MinX, MaxX; // X轴投影范围
+        public GameObject Obj;
+    }
+
+    public void CheckCollisions(List<SAPObject> objects)
+    {
+        // 1. 排序 (Sort)
+        // 根据 MinX 从小到大排序
+        // 对于保持时间一致性的系统，可以使用插入排序优化
+        objects.Sort((a, b) => a.MinX.CompareTo(b.MinX));
+
+        // 2. 扫描 (Sweep)
+        List<SAPObject> activeList = new List<SAPObject>();
+
+        for (int i = 0; i < objects.Count; i++)
+        {
+            SAPObject current = objects[i];
+
+            // 3. 裁剪 (Prune)
+            // 倒序遍历活跃列表，移除已经完全在 current 左边的物体
+            for (int j = activeList.Count - 1; j >= 0; j--)
+            {
+                SAPObject active = activeList[j];
+                
+                // 如果 active 的最右边 还在 current 的最左边 还要左
+                // 说明不可能相撞了，也不可能和后面的物体相撞(因为后面的MinX更大)
+                if (active.MaxX < current.MinX)
+                {
+                    activeList.RemoveAt(j);
+                }
+                else
+                {
+                    // 4. 检测 (Check)
+                    // X轴重叠了！进一步检查Y轴或进行精确碰撞检测
+                    if (CheckCollision(current, active))
+                    {
+                        Debug.Log($"碰撞: {current.ID} <-> {active.ID}");
+                    }
+                }
+            }
+
+            // 5. 加入 (Add)
+            activeList.Add(current);
+        }
+    }
+}
+</code></pre>
+            </div>
+        </section>
+
+        <footer class="pixel-box footer">
+            <p>搞定！现在你也是空间划分的大师了！</p>
+            <p>SAP 特别适合物体大小差不多，且沿某个轴分布比较均匀的情况哦。</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
