@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RVO2 避障算法详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>RVO2 避障算法深度解析</h1>
+            <p class="subtitle">从原理到实现：手把手教你写出 ORCA 核心逻辑</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rvo-icon"></div>
+                <h2>1. 核心思维转换：位置 vs 速度</h2>
+            </div>
+            <p>要自己实现 RVO，首先要习惯在<strong>速度空间 (Velocity Space)</strong> 思考。</p>
+            <div class="compare-grid">
+                <div class="compare-item">
+                    <h4>位置空间</h4>
+                    <p>我们熟悉的 X, Y 坐标系。障碍物是圆形的石头。</p>
+                </div>
+                <div class="compare-item">
+                    <h4>速度空间</h4>
+                    <p>坐标轴是 Vx, Vy。这里的"点"代表一个速度向量。<strong>障碍物是"禁止通行的速度区域"。</strong></p>
+                </div>
+            </div>
+            <div class="note-box">
+                <strong>目标：</strong> 在速度空间里，找到一个点（速度），它既不在"禁止区域"内，又最接近我们的期望速度（寻路方向）。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rvo-icon"></div>
+                <h2>2. 避障实验室</h2>
+            </div>
+            <p>观察下方红蓝小球。在 RVO 模式下，它们会根据对方的速度提前调整自己的速度。</p>
+            <div class="demo-container">
+                <div class="behavior-buttons">
+                    <button class="pixel-btn active" data-mode="none">无避障</button>
+                    <button class="pixel-btn" data-mode="force">排斥力 (抖动)</button>
+                    <button class="pixel-btn" data-mode="rvo">RVO (预测)</button>
+                    <button class="pixel-btn" id="btn-reset">重置位置</button>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="rvo-canvas" width="800" height="400"></canvas>
+                </div>
+                <div class="note-box" id="mode-desc">
+                    <strong>无避障模式：</strong> 两个单位互相看不见，直接穿过对方。
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 硬核原理：从 VO 到 ORCA -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rvo-icon"></div>
+                <h2>3. 硬核原理：如何计算禁止区域？</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>第一步：速度障碍 (Velocity Obstacle, VO)</h3>
+                <p>假设我是 A，你是 B。如果我保持速度 <span class="math-text">vA</span>，你保持 <span class="math-text">vB</span>，我们会撞吗？</p>
+                <p><strong>原理：</strong> 这就像我们在看一艘远处的船。如果它的相对位置在视线里不动，只是变大了，那就说明我们正在朝它撞过去。</p>
+                <div class="vo-diagram">
+                    <div class="vo-cone"></div>
+                    <div class="vo-point" style="bottom: 80px; left: 100px; background: blue;" title="安全速度"></div>
+                    <div class="vo-point" style="bottom: 30px; left: 100px; background: red;" title="危险速度"></div>
+                    <span class="vo-label" style="top: 10px; left: 10px;">速度空间</span>
+                    <span class="vo-label" style="bottom: 10px; left: 50%; transform: translateX(-50%);">VO 锥体(危险区)</span>
+                </div>
+                <p>在几何上，VO 就是一个圆锥体（在 2D 是三角形）。任何落在圆锥内的相对速度 <span class="math-text">vA - vB</span>，都会导致未来发生碰撞。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：互惠速度障碍 (RVO)</h3>
+                <p>如果我们只避让 VO，我会绕很大一圈，因为我假设你是个死物（木头人）。</p>
+                <p>实际上你会让路。所以 RVO 的核心思想是：<strong>我们各让一步</strong>。</p>
+                <p>数学上，把 VO 圆锥的顶点向我的速度方向<strong>平移了一半</strong>。这意味着：我们只需处理一半的避让责任。</p>
+                <p class="math-text">VO_center = (vA + vB) / 2</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第三步：ORCA (最佳互惠碰撞避让)</h3>
+                <p>这是 RVO2 库实际用的算法。它把"避让"这件事简化为<strong>画一条线</strong>（半平面约束）。</p>
+                <p>如果发现会撞，我们计算出一个最小的<strong>推力 u</strong>。然后画一条垂直于 u 的线。这条线的一侧是安全的，另一侧是危险的。</p>
+                <p>当我们有多个邻居时，就有了多条线。我们用<strong>线性规划</strong>找出一个新速度，满足所有线的约束，且最接近期望速度。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实现 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rvo-icon"></div>
+                <h2>4. 手写核心逻辑 (C#)</h2>
+            </div>
+            <p>要自己实现一套 RVO，核心在于构建 ORCA 线。这是一个简化版的实现思路。</p>
+
+            <div class="code-step">
+                <h3>核心结构</h3>
+                <pre><code class="language-csharp">
+public struct Line {
+    public Vector2 point; // 线上一点
+    public Vector2 direction; // 线的方向
+}
+
+// 核心函数：为每个邻居生成一个约束线
+public Line CreateORCALine(Agent me, Agent neighbor) {
+    Vector2 relativePos = neighbor.pos - me.pos;
+    Vector2 relativeVel = me.velocity - neighbor.velocity;
+    float combinedRadius = me.radius + neighbor.radius;
+    float distSq = relativePos.sqrMagnitude;
+    float combinedRadiusSq = combinedRadius * combinedRadius;
+
+    Vector2 u; // 避让向量
+
+    if (distSq > combinedRadiusSq) {
+        // 1. 还没撞：VO 是个圆锥
+        // 这里省略复杂的切线计算，简化为：如果相对速度指向对方且会撞
+        // 计算碰撞时间 t，以及最小修正向量 u
+        // (此处涉及大量几何运算，计算 cutoff center 和 shadow)
+        // 简单版：直接计算相对速度在相对位置上的投影
+    } else {
+        // 2. 已经撞上了（或重叠）：尽快分开
+        float dist = Mathf.Sqrt(distSq);
+        Vector2 n = relativePos / dist; // 碰撞法线
+        u = n * (combinedRadius - dist) / timeStep; // 推出重叠部分
+    }
+
+    // ORCA 核心：各让一半
+    u = u * 0.5f; 
+
+    // 构建半平面线
+    Line line;
+    line.point = me.velocity + u; // 现在的速度 + 修正量
+    // 线方向垂直于 u
+    line.direction = new Vector2(u.y, -u.x).normalized; 
+    return line;
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>求解新速度 (线性规划)</h3>
+                <p>有了每个邻居的 Line 之后，我们需要找一个点 <span class="math-text">vNew</span>，它在所有 Line 的"内侧"，且离 <span class="math-text">vPref</span> 最近。</p>
+                <pre><code class="language-csharp">
+Vector2 ComputeNewVelocity(Agent me, List<Line> lines) {
+    Vector2 result = me.prefVelocity; // 先假设能全速走
+    
+    // 遍历所有约束线
+    for (int i = 0; i < lines.Count; i++) {
+        // 如果 result 不满足当前线 (在"外侧")
+        // 点积 < 0 说明在法线反方向（假设法线指向危险区）
+        // 这里需要根据 Line 定义调整符号
+        if (SignedDistance(lines[i], result) > 0) {
+            // 新速度必须在这条线上
+            // 这是一个一维线性规划问题：
+            // 在这条线上找一个点，满足之前所有线 (0 到 i-1) 的约束，且离 prefVelocity 最近
+            result = ProjectOnLine(lines, i, me.prefVelocity);
+        }
+    }
+    return result;
+}
+                </code></pre>
+            </div>
+             <div class="note-box">
+                <strong>实现难点：</strong> 上述代码最难的是 <code>ProjectOnLine</code>，当约束互相冲突时（无解，比如被围死了），需要通过 3D 线性规划或者适当放松约束来解决。
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>RVO2 是计算几何的艺术。如果你能手写出来，你就是 AI 算法大师！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

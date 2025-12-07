@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蚁群算法 (ACO) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>蚁群算法 (ACO)</h1>
+            <p class="subtitle">一群瞎子如何找到最短路径？</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon ant-icon"></div>
+                <h2>1. 自然界的奇迹</h2>
+            </div>
+            <p>蚂蚁几乎是瞎子，也没有 GPS。但是，如果把一块糖放在离蚁穴很远的地方，过不了多久，蚂蚁们就会走出一条<strong>最短的直线路径</strong>搬运食物。</p>
+            <p>它们是怎么做到的？答案就是：<strong>信息素 (Pheromone)</strong>。</p>
+            <div class="note-box">
+                <span class="highlight-text">正反馈原理</span>：
+                <ol>
+                    <li>蚂蚁随机探索，边走边留下信息素。</li>
+                    <li>走到食物的蚂蚁，带着食物原路返回，再次留下更浓的信息素。</li>
+                    <li>别的蚂蚁闻到强烈的气味，就会大概率跟着走。</li>
+                    <li><strong>路径越短，往返次数越多，留下的气味越浓</strong>。</li>
+                    <li>最终，所有蚂蚁都涌向了那条最短的路径。</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon pheromone-icon"></div>
+                <h2>2. 互动实验室：构建高速公路</h2>
+            </div>
+            <p>观察下方的蚂蚁。一开始它们四散奔逃（随机探索）。一旦有一只运气好找到了红色的食物，奇迹就会发生！</p>
+            <p><strong>操作提示：</strong>点击画面左半边移动<span style="color:blue">家</span>，点击右半边移动<span style="color:red">食物</span>。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="aco-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>蚂蚁数量: <span id="val-ant">50</span></label>
+                        <input type="range" id="range-ant" min="10" max="200" step="10" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>挥发速度: <span id="val-evap">0.98</span></label>
+                        <input type="range" id="range-evap" min="0.90" max="0.99" step="0.01" value="0.98">
+                    </div>
+                    <button id="btn-reset" class="pixel-btn" style="padding: 5px 10px; font-size: 0.9em;">重置世界</button>
+                </div>
+                <p>绿色轨迹代表信息素浓度。颜色越深，味道越重！</p>
+            </div>
+        </div>
+
+        <!-- 3. 实现步骤 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon ant-icon"></div>
+                <h2>3. 如何实现？保姆级步骤</h2>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-badge">1</div>
+                <h3>环境搭建</h3>
+                <p>你需要一个网格（Grid）或者图（Graph）。每个节点存储两个关键数据：</p>
+                <ul>
+                    <li><strong>信息素浓度 (Pheromone)</strong>：随时间挥发，随蚂蚁经过增加。</li>
+                    <li><strong>距离/代价 (Cost)</strong>：如果是 TSP 问题，则是城市间距离。</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">2</div>
+                <h3>蚂蚁的行为逻辑</h3>
+                <p>每一步，蚂蚁都要做一个<strong>概率选择</strong>：</p>
+                <p><code>P(走某条路) = 信息素浓度^α * (1/距离)^β</code></p>
+                <p>简单来说：<strong>味道越浓、距离越近的路，被选中的概率越大</strong>。但注意是概率！这意味着蚂蚁偶尔也会走弯路（探索新解）。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">3</div>
+                <h3>更新信息素</h3>
+                <p>每一轮结束后，要进行两步操作：</p>
+                <ol>
+                    <li><strong>挥发 (Evaporation)</strong>：<code>Grid *= 0.95</code>。这一步至关重要！如果不挥发，整个地图最后全是信息素，蚂蚁就迷路了。</li>
+                    <li><strong>增强 (Deposit)</strong>：走过最短路径的蚂蚁，给它经过的节点加分。路径越短，加分越多。</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon ant-icon"></div>
+                <h2>4. C# 代码结构</h2>
+            </div>
+            <p>这是一个简化版的 ACO 类结构，适用于网格寻路。</p>
+
+            <div class="code-step">
+                <h3>Ant 类</h3>
+                <pre><code class="language-csharp">
+public class Ant
+{
+    public Vector2 position;
+    public bool hasFood = false;
+
+    // 感知与移动
+    public void Move(float[,] pheromones)
+    {
+        // 1. 获取前方左、中、右三个方向的坐标
+        Vector2 fwd = transform.forward;
+        Vector2 left = Rotate(fwd, -45);
+        Vector2 right = Rotate(fwd, 45);
+
+        // 2. 读取这三个位置的信息素浓度
+        float pLeft = GetPheromone(pheromones, position + left * sensorDist);
+        float pFwd = GetPheromone(pheromones, position + fwd * sensorDist);
+        float pRight = GetPheromone(pheromones, position + right * sensorDist);
+
+        // 3. 转向信息素最浓的方向 (加上一点随机扰动)
+        if (pFwd > pLeft && pFwd > pRight) { /* 继续直走 */ }
+        else if (pLeft > pRight) { Turn(-turnSpeed); }
+        else if (pRight > pLeft) { Turn(turnSpeed); }
+        else { Turn(Random.Range(-1f, 1f) * turnSpeed); } // 瞎蒙
+
+        // 4. 移动
+        position += transform.forward * speed * Time.deltaTime;
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- 5. 算法对比 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>5. 算法大乱斗：ACO vs 其他</h2>
+            </div>
+            
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>算法</th>
+                        <th>类型</th>
+                        <th>核心思想</th>
+                        <th>适用场景</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>ACO (蚁群)</strong></td>
+                        <td>概率启发式</td>
+                        <td><strong>群体智慧、正反馈</strong></td>
+                        <td>动态环境寻路、<strong>TSP (旅行商问题)</strong>、任务分配</td>
+                    </tr>
+                    <tr>
+                        <td><strong>A* (A-Star)</strong></td>
+                        <td>确定性搜索</td>
+                        <td><strong>启发函数 (F=G+H)</strong></td>
+                        <td>静态地图最短路 (游戏中最常用)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DFS / BFS</strong></td>
+                        <td>遍历算法</td>
+                        <td><strong>穷举</strong></td>
+                        <td>小地图、填充算法、连通性检查</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JPS</strong></td>
+                        <td>A* 优化</td>
+                        <td><strong>跳过对称节点</strong></td>
+                        <td>大而空的均匀网格地图</td>
+                    </tr>
+                    <tr>
+                        <td><strong>暴力法</strong></td>
+                        <td>憨憨</td>
+                        <td><strong>试遍所有可能</strong></td>
+                        <td>规模极小的问题 (N < 10)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="note-box">
+                <strong>为什么游戏里很少用 ACO 寻路？</strong> 因为它收敛慢（蚂蚁需要跑好几趟才能找到路），而且不稳定。但在<strong>动态环境</strong>（比如地图一直在变）或者需要<strong>解决复杂组合优化</strong>时，它是王者。
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>个体虽渺小，群体即神明。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

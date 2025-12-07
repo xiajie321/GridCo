@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids 群体模拟算法详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>Boids 群体模拟算法</h1>
+            <p class="subtitle">自然界的奥秘：为什么鸟群不会相撞？</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon boids-icon"></div>
+                <h2>1. 什么是涌现 (Emergence)？</h2>
+            </div>
+            <p>你是否观察过天空中的鸟群或海洋中的鱼群？它们成千上万，动作整齐划一，仿佛有一个总指挥在发号施令。</p>
+            <p>但实际上，<strong>根本没有"总指挥"</strong>。每一只鸟都只是遵循着非常简单的局部规则。当成百上千只鸟同时遵循这些简单规则时，复杂的群体行为就自然而然地产生了——这就是<strong>"涌现"</strong>。</p>
+            <div class="note-box">
+                <span class="highlight-text">Boids 算法</span> 由 Craig Reynolds 于 1986 年提出，它只用了三条简单的规则，就完美模拟了这种自然现象。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>2. 互动实验室：上帝视角</h2>
+            </div>
+            <p>调整下面的参数，观察群体行为的变化。试试看把某个规则设为 0 会发生什么？</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="boids-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>分离力度 (Separation): <span id="val-sep">1.5</span></label>
+                        <input type="range" id="range-sep" min="0" max="5" step="0.1" value="1.5">
+                    </div>
+                    <div class="control-group">
+                        <label>对齐力度 (Alignment): <span id="val-ali">1.0</span></label>
+                        <input type="range" id="range-ali" min="0" max="5" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label>凝聚力度 (Cohesion): <span id="val-coh">1.0</span></label>
+                        <input type="range" id="range-coh" min="0" max="5" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label>感知半径 (Radius): <span id="val-radius">50</span></label>
+                        <input type="range" id="range-radius" min="10" max="100" step="1" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>数量 (Count): <span id="val-count">100</span></label>
+                        <input type="range" id="range-count" min="10" max="300" step="10" value="100">
+                    </div>
+                    <div class="control-group" style="justify-content: center; min-width: auto;">
+                        <label><input type="checkbox" id="check-radius"> 显示感知圈</label>
+                    </div>
+                    <button id="btn-reset" class="pixel-btn" style="padding: 5px 10px; font-size: 0.9em;">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 三大核心规则 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>3. 核心规则详解</h2>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-badge">1</div>
+                <h3>分离 (Separation) - "别挤我！"</h3>
+                <p><strong>目的：</strong> 避免拥挤和碰撞。</p>
+                <p><strong>实现：</strong> 检查周围一定范围内的同伴。如果太近了，就产生一个反方向的排斥力。</p>
+                <p><i>如果只有这个规则：</i> 个体像没头苍蝇一样四散奔逃。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">2</div>
+                <h3>对齐 (Alignment) - "随大流"</h3>
+                <p><strong>目的：</strong> 保持方向一致。</p>
+                <p><strong>实现：</strong> 计算周围同伴的<strong>平均速度（方向）</strong>，并尝试转向那个方向。</p>
+                <p><i>如果只有这个规则：</i> 大家会朝一个方向飞，但可能会撞在一起或者散得很开。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">3</div>
+                <h3>凝聚 (Cohesion) - "别掉队"</h3>
+                <p><strong>目的：</strong> 保持群体在一起。</p>
+                <p><strong>实现：</strong> 计算周围同伴的<strong>平均位置（中心点）</strong>，并产生一个指向该中心点的力。</p>
+                <p><i>如果只有这个规则：</i> 大家会缩成一个球。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实现 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon boids-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+            <p>在 Unity 中，我们通常使用 <code>MonoBehaviour</code> 来实现。为了性能，正式项目中建议使用 ECS (Job System)。但为了理解原理，我们先看面向对象的写法。</p>
+
+            <div class="code-step">
+                <h3>Boid 脚本</h3>
+                <pre><code class="language-csharp">
+using UnityEngine;
+using System.Collections.Generic;
+
+public class Boid : MonoBehaviour
+{
+    public float maxSpeed = 5f;
+    public float maxForce = 1f;
+    
+    public float perceptionRadius = 5f; // 感知半径
+
+    // 每一帧更新
+    void Update()
+    {
+        // 1. 找到周围所有的邻居 (这一步最耗费性能，通常使用空间划分优化)
+        List<Boid> neighbors = GetNeighbors();
+        
+        // 2. 计算三个力
+        Vector3 separation = Separate(neighbors);
+        Vector3 alignment = Align(neighbors);
+        Vector3 cohesion = Cohere(neighbors);
+        
+        // 3. 加权求和
+        Vector3 acceleration = Vector3.zero;
+        acceleration += separation * 1.5f; // 分离权重通常高一点
+        acceleration += alignment * 1.0f;
+        acceleration += cohesion * 1.0f;
+        
+        // 4. 应用物理移动 (简化版，非 Rigidbody)
+        velocity += acceleration * Time.deltaTime;
+        velocity = Vector3.ClampMagnitude(velocity, maxSpeed); // 限制最大速度
+        transform.position += velocity * Time.deltaTime;
+        
+        // 朝向速度方向
+        if (velocity != Vector3.zero)
+            transform.rotation = Quaternion.LookRotation(velocity);
+    }
+    
+    // 示例：对齐规则的实现
+    Vector3 Align(List<Boid> neighbors)
+    {
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+        
+        foreach (var boid in neighbors)
+        {
+            sum += boid.velocity;
+            count++;
+        }
+        
+        if (count > 0)
+        {
+            sum /= count; // 平均速度
+            sum = sum.normalized * maxSpeed; // 期望速度
+            
+            // 转向力 = 期望速度 - 当前速度
+            Vector3 steer = sum - velocity;
+            return Vector3.ClampMagnitude(steer, maxForce);
+        }
+        return Vector3.zero;
+    }
+    
+    // 分离和凝聚的逻辑类似...
+    // 分离：计算 (myPos - otherPos) / dist 的平均值
+    // 凝聚：计算 otherPos 的平均值，然后 seek 那个点
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- 5. 算法对比 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>5. 什么时候用 Boids？算法大比拼</h2>
+            </div>
+            <p>既然都是让物体移动，Boids 和 A* 寻路有什么区别？我们应该什么时候用哪个？</p>
+            
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>算法</th>
+                        <th>核心思想</th>
+                        <th>适用场景</th>
+                        <th>优点</th>
+                        <th>缺点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Boids (群体模拟)</strong></td>
+                        <td>局部规则，自然涌现</td>
+                        <td><strong>鸟群、鱼群、丧尸潮</strong>、背景人群</td>
+                        <td>动作自然、流畅，适合开放空间</td>
+                        <td><strong>不可控</strong>（很难让它们精确排成一列走窄桥），性能开销大（O(N²)）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>A* (A-Star)</strong></td>
+                        <td>启发式搜索，找最短路</td>
+                        <td><strong>RTS 单位移动</strong>、迷宫寻路</td>
+                        <td><strong>必定能到达目标</strong>，路径最优</td>
+                        <td>计算量大，只管单个物体，不考虑群体拥挤</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flow Field (流场)</strong></td>
+                        <td>全图预计算向量场</td>
+                        <td><strong>成千上万单位</strong>去往同一目的地</td>
+                        <td><strong>性能极高</strong>（无论多少单位开销都一样）</td>
+                        <td>通常基于网格，动作略显生硬</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DFS / BFS</strong></td>
+                        <td>图的遍历</td>
+                        <td>简单的网格搜索、填充算法</td>
+                        <td>原理简单，确保遍历</td>
+                        <td>效率低，不是为了"平滑移动"设计的</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Steering Behaviors</strong></td>
+                        <td>Boids 的扩展</td>
+                        <td>各种智能体移动（追逐、逃跑、巡逻）</td>
+                        <td>模块化，组合性强</td>
+                        <td>参数调优复杂</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="note-box">
+                <strong>总结：</strong> 如果你要做一群丧尸追玩家，用 <strong>Flow Field</strong>；如果要做几只老鹰在天上盘旋，用 <strong>Boids</strong>；如果要让一个角色自动走到地图某点，用 <strong>A*</strong>。
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>从简单的规则中诞生复杂的行为，这也许就是生命的奥秘？</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

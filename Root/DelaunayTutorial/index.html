@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delaunay 三角剖分详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>Delaunay 三角剖分</h1>
+            <p class="subtitle">如何把一堆点连成最优的三角形网格？</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon tri-icon"></div>
+                <h2>1. 什么是 Delaunay？</h2>
+            </div>
+            <p>给你一堆随机的点，怎么把它们连成三角形？方法有很多，但 Delaunay 是“最完美”的一种。</p>
+            <p><strong>它的核心特性：</strong> 任何一个三角形的外接圆内部，都不会包含其他的点。</p>
+            <div class="note-box">
+                <strong>通俗解释：</strong> 它尽力避免产生那种又细又长的三角形，让所有三角形看起来都比较“胖”（接近等边三角形）。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon tri-icon"></div>
+                <h2>2. 剖分实验室</h2>
+            </div>
+            <p>在画布上<strong>点击</strong>添加点。观察三角形是如何自动重新连接的。</p>
+            <p>移动鼠标到三角形上，会显示它的<strong>外接圆</strong>（验证空圆特性）。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="delaunay-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="pixel-btn" id="btn-clear">清空画布</button>
+                    <button class="pixel-btn" id="btn-random">随机生成</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 算法原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon tri-icon"></div>
+                <h2>3. 算法：Bowyer-Watson (逐点插入法)</h2>
+            </div>
+            <p>这是一个增量算法，每次往图里插入一个新点，然后局部修复。</p>
+            
+            <div class="step-card">
+                <h3>第一步：超级三角形</h3>
+                <p>先创建一个巨大的三角形（超级三角形），大到能包住所有未来的点。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：插入新点</h3>
+                <p>对于每一个新点 P：</p>
+                <ol>
+                    <li>找到所有<strong>外接圆包含点 P</strong> 的三角形。这些三角形是不合法的（坏三角形）。</li>
+                    <li>把这些坏三角形删掉，留下一个多边形空洞。</li>
+                    <li>把点 P 和空洞的每一个顶点连接，形成新的三角形。</li>
+                </ol>
+            </div>
+
+            <div class="step-card">
+                <h3>第三步：清理</h3>
+                <p>所有点插完后，把那个超级三角形及其关联的边删掉。完工！</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon tri-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>核心数据结构</h3>
+                <pre><code class="language-csharp">
+public class Triangle {
+    public Vector2 p1, p2, p3;
+    public Edge[] edges;
+    // 计算外接圆圆心和半径
+    public Vector2 circumCenter;
+    public float circumRadiusSq;
+    
+    public bool ContainsInCircumCircle(Vector2 p) {
+        return (p - circumCenter).sqrMagnitude < circumRadiusSq;
+    }
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>Bowyer-Watson 实现</h3>
+                <pre><code class="language-csharp">
+public List<Triangle> Triangulate(List<Vector2> points) {
+    List<Triangle> triangulation = new List<Triangle>();
+    
+    // 1. 添加超级三角形
+    var superTri = CreateSuperTriangle(points);
+    triangulation.Add(superTri);
+
+    // 2. 逐点插入
+    foreach (var point in points) {
+        List<Triangle> badTriangles = new List<Triangle>();
+        
+        // 找出所有受影响的三角形
+        foreach (var tri in triangulation) {
+            if (tri.ContainsInCircumCircle(point)) {
+                badTriangles.Add(tri);
+            }
+        }
+
+        // 找出边缘 (多边形空洞)
+        // 如果一条边被两个坏三角形共享，它就不是边缘；
+        // 如果只被一个坏三角形拥有，它就是边缘。
+        List<Edge> polygon = FindBoundaryEdges(badTriangles);
+
+        // 删除坏三角形
+        foreach (var bad in badTriangles) triangulation.Remove(bad);
+
+        // 构建新三角形
+        foreach (var edge in polygon) {
+            triangulation.Add(new Triangle(edge.p1, edge.p2, point));
+        }
+    }
+
+    // 3. 移除超级三角形相关部分
+    triangulation.RemoveAll(t => t.SharesVertexWith(superTri));
+    
+    return triangulation;
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p><strong>应用场景：</strong> 地形生成、NavMesh 烘焙、Voronoi 图生成。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

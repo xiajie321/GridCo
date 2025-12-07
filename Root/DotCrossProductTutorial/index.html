@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点乘与叉乘详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>点乘 vs 叉乘</h1>
+            <p class="subtitle">向量数学的双子星：图形学与游戏开发的核心基石</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon vector-icon"></div>
+                <h2>1. 什么是向量乘法？</h2>
+            </div>
+            <p>数字相乘很简单 (2 * 3 = 6)，但向量有两个方向，怎么“乘”？数学家发明了两种方法：</p>
+            <div class="compare-grid">
+                <div class="compare-item">
+                    <h4>点乘 (Dot Product)</h4>
+                    <p><strong>结果是：</strong> 一个数字 (标量)。</p>
+                    <p><strong>几何意义：</strong> 投影。A 在 B 方向上有多少分量？或者两者方向有多一致？</p>
+                    <p><strong>符号：</strong> <span class="math-text">A · B</span></p>
+                </div>
+                <div class="compare-item">
+                    <h4>叉乘 (Cross Product)</h4>
+                    <p><strong>结果是：</strong> 一个新向量。</p>
+                    <p><strong>几何意义：</strong> 法线。同时垂直于 A 和 B 的新方向。大小等于平行四边形面积。</p>
+                    <p><strong>符号：</strong> <span class="math-text">A × B</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon vector-icon"></div>
+                <h2>2. 向量实验室</h2>
+            </div>
+            <p>拖动红色和蓝色向量的箭头，观察数值变化。</p>
+            
+            <div class="demo-container">
+                <div class="behavior-buttons">
+                    <button class="pixel-btn active" data-mode="dot">点乘 (Dot)</button>
+                    <button class="pixel-btn" data-mode="cross">叉乘 (Cross 2D)</button>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="vector-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="note-box" id="result-display">
+                    结果：0
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 点乘详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon vector-icon"></div>
+                <h2>3. 点乘：计算夹角与投影</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>公式</h3>
+                <p>代数定义：<span class="math-text">a·b = x1*x2 + y1*y2</span></p>
+                <p>几何定义：<span class="math-text">a·b = |a||b|cos(θ)</span></p>
+            </div>
+
+            <div class="step-card">
+                <h3>必背结论 (假设单位向量)</h3>
+                <ul>
+                    <li><strong>值 = 1:</strong> 完全同向 (0°)。</li>
+                    <li><strong>值 = 0:</strong> 垂直 (90°)。</li>
+                    <li><strong>值 = -1:</strong> 完全背向 (180°)。</li>
+                    <li><strong>值 > 0:</strong> 前方 (锐角)。</li>
+                    <li><strong>值 < 0:</strong> 后方 (钝角)。</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <h3>实战应用</h3>
+                <ul>
+                    <li><strong>怪物视野：</strong> 判断玩家是否在怪物前方扇形区域内。</li>
+                    <li><strong>光照计算：</strong> 光线与表面法线的夹角决定亮度 (Lambert)。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. 叉乘详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon vector-icon"></div>
+                <h2>4. 叉乘：找法线与算面积</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>公式 (3D)</h3>
+                <p>结果向量同时垂直于 A 和 B。遵循右手定则。</p>
+                <p><span class="math-text">result.y = a.z*b.x - a.x*b.z</span> (Y轴分量)</p>
+            </div>
+
+            <div class="step-card">
+                <h3>2D 中的叉乘 (伪叉乘)</h3>
+                <p>在 2D 中没有 Z 轴，但我们可以计算 <span class="math-text">a.x*b.y - a.y*b.x</span>。</p>
+                <p>这个标量结果代表了由 A 和 B 围成的<strong>平行四边形的有向面积</strong>。</p>
+                <ul>
+                    <li><strong>值 > 0:</strong> B 在 A 的逆时针方向（左侧）。</li>
+                    <li><strong>值 < 0:</strong> B 在 A 的顺时针方向（右侧）。</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <h3>实战应用</h3>
+                <ul>
+                    <li><strong>左右判断：</strong> 赛车游戏中判断目标在车身左边还是右边。</li>
+                    <li><strong>表面法线：</strong> 给定三角形三个点，求该面的朝向。</li>
+                    <li><strong>多边形面积：</strong> 鞋带公式。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 5. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon vector-icon"></div>
+                <h2>5. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>1. 点乘 (Dot)</h3>
+                <pre><code class="language-csharp">
+// 判断目标是否在前方
+Vector3 forward = transform.forward;
+Vector3 toTarget = (target.position - transform.position).normalized;
+
+float dot = Vector3.Dot(forward, toTarget);
+
+if (dot > 0.5f) { // cos(60°) = 0.5
+    Debug.Log("在前方 60 度范围内");
+} else if (dot < 0) {
+    Debug.Log("在身后");
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. 叉乘 (Cross)</h3>
+                <pre><code class="language-csharp">
+// 计算三角形法线
+Vector3 side1 = p2 - p1;
+Vector3 side2 = p3 - p1;
+
+// 法线垂直于 side1 和 side2 构成的平面
+Vector3 normal = Vector3.Cross(side1, side2).normalized;
+
+// 判断左右 (2D 平面逻辑, 忽略 Y 轴)
+Vector3 forward = transform.forward;
+Vector3 toTarget = target.position - transform.position;
+Vector3 cross = Vector3.Cross(forward, toTarget);
+
+if (cross.y > 0) {
+    Debug.Log("在右侧");
+} else {
+    Debug.Log("在左侧");
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>记住：点乘看角度，叉乘看方向。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

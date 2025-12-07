@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三角函数 (Sin/Cos/Tan) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>Sin / Cos / Tan</h1>
+            <p class="subtitle">不要被名字吓跑！它们只是计算位置的工具</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon trig-icon"></div>
+                <h2>1. 三角函数三巨头</h2>
+            </div>
+            <p>如果把一个圆放在坐标系中心，半径为 1，那么对于圆上任意一点（角度为 θ）：</p>
+            <div class="compare-grid">
+                <div class="compare-item" style="border-top: 5px solid var(--cos-color);">
+                    <h4><span class="tag-cos">Cos (余弦)</span></h4>
+                    <p><strong>就是 X 坐标。</strong></p>
+                    <p>反映了点在水平方向的位置。</p>
+                </div>
+                <div class="compare-item" style="border-top: 5px solid var(--sin-color);">
+                    <h4><span class="tag-sin">Sin (正弦)</span></h4>
+                    <p><strong>就是 Y 坐标。</strong></p>
+                    <p>反映了点在垂直方向的位置。</p>
+                </div>
+                <div class="compare-item" style="border-top: 5px solid var(--tan-color);">
+                    <h4><span class="tag-tan">Tan (正切)</span></h4>
+                    <p><strong>就是斜率。</strong></p>
+                    <p>等于 Sin / Cos。也就是 Y / X。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon trig-icon"></div>
+                <h2>2. 互动单位圆</h2>
+            </div>
+            <p>拖动圆上的<strong>黄色点</strong>，或者拖动滑块改变角度。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="trig-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group" style="width: 100%;">
+                        <label>角度 (Angle): <span id="val-angle" class="value-fixed-width">0</span>°</label>
+                        <input type="range" id="range-angle" min="0" max="360" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label><input type="checkbox" id="check-wave" checked> 显示波形 (2D)</label>
+                        <label style="margin-left: 10px;"><input type="checkbox" id="check-pause"> 暂停旋转</label>
+                        <button class="pixel-btn" id="btn-3d" style="padding: 2px 10px; font-size: 0.8em; margin-left: 10px;">切换 3D 视图</button>
+                    </div>
+                </div>
+                
+                <div class="note-box">
+                    <span style="color:var(--cos-color)">蓝色线 = Cos (X)</span>, 
+                    <span style="color:var(--sin-color)">红色线 = Sin (Y)</span>, 
+                    <span style="color:var(--tan-color)">绿色线 = Tan (斜率)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 游戏应用 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon trig-icon"></div>
+                <h2>3. 它们在游戏里能干什么？</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>1. 圆周运动 / 卫星绕转</h3>
+                <p>如果你想让一个物体绕着另一个物体转圈，就需要同时用 Cos 和 Sin。</p>
+                <p><span class="math-text">x = R * cos(time)</span></p>
+                <p><span class="math-text">y = R * sin(time)</span></p>
+            </div>
+
+            <div class="step-card">
+                <h3>2. 波浪 / 呼吸灯 (Sin)</h3>
+                <p>Sin 函数的值永远在 -1 到 1 之间平滑波动。非常适合做往复运动。</p>
+                <ul>
+                    <li><strong>悬浮道具：</strong> 上下浮动。</li>
+                    <li><strong>颜色渐变：</strong> 呼吸灯效果。</li>
+                    <li><strong>水面波动：</strong> 顶点高度偏移。</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <h3>3. 炮台转向 (Atan2)</h3>
+                <p>已知敌人的坐标 (x, y)，如何算出炮台应该旋转多少度？</p>
+                <p>用反三角函数！<code>Mathf.Atan2(y, x)</code> 可以直接给你弧度。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon trig-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>1. 悬浮效果 (Floating Item)</h3>
+                <pre><code class="language-csharp">
+void Update() {
+    // 基础高度 + 浮动幅度 * sin(时间 * 速度)
+    float newY = startY + amplitude * Mathf.Sin(Time.time * speed);
+    transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. 2D 角色面向鼠标 (Atan2)</h3>
+                <pre><code class="language-csharp">
+void Update() {
+    Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+    Vector3 direction = mousePos - transform.position;
+    
+    // Atan2 返回弧度，需要转成角度
+    float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+    
+    // 应用旋转 (Z轴)
+    transform.rotation = Quaternion.Euler(0, 0, angle);
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>记住：<strong>Cos 对应 X，Sin 对应 Y</strong>，这就够用 80% 的情况了。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steering Behaviors 操纵行为算法详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>Steering Behaviors 操纵行为</h1>
+            <p class="subtitle">赋予游戏角色灵魂：从僵硬移动到智能行为</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon steering-icon"></div>
+                <h2>1. 什么是操纵行为？</h2>
+            </div>
+            <p>在游戏中，让角色从 A 点移动到 B 点很简单。但如何让它移动得<strong>自然</strong>、<strong>栩栩如生</strong>？</p>
+            <p>Craig Reynolds 在 90 年代提出了 <span class="highlight-text">Steering Behaviors</span>。它的核心思想不是直接控制角色的位置，而是控制<strong>转向力 (Steering Force)</strong>。</p>
+            <div class="note-box">
+                <strong>公式：</strong> 转向力 = 期望速度 - 当前速度<br>
+                Steering Force = Desired Velocity - Current Velocity
+            </div>
+            <p>这就像开车：你不是直接把车"瞬移"到目的地，而是通过转动方向盘（施加转向力）来改变车的行驶方向。</p>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon target-icon"></div>
+                <h2>2. 行为实验室</h2>
+            </div>
+            <p>点击下方按钮切换不同的行为模式，然后在画布上点击鼠标来放置目标。</p>
+            
+            <div class="demo-container">
+                <div class="behavior-buttons">
+                    <button class="pixel-btn active" data-behavior="seek">Seek (追逐)</button>
+                    <button class="pixel-btn" data-behavior="flee">Flee (逃避)</button>
+                    <button class="pixel-btn" data-behavior="arrive">Arrive (抵达)</button>
+                    <button class="pixel-btn" data-behavior="wander">Wander (徘徊)</button>
+                    <button class="pixel-btn" data-behavior="pursuit">Pursuit (拦截)</button>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="steering-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>最大速度 (Max Speed): <span id="val-speed">4.0</span></label>
+                        <input type="range" id="range-speed" min="1" max="10" step="0.1" value="4.0">
+                    </div>
+                    <div class="control-group">
+                        <label>最大转向力 (Max Force): <span id="val-force">0.1</span></label>
+                        <input type="range" id="range-force" min="0.01" max="0.5" step="0.01" value="0.1">
+                    </div>
+                     <div class="control-group" style="justify-content: center; min-width: auto;">
+                        <label><input type="checkbox" id="check-debug" checked> 显示辅助线</label>
+                    </div>
+                </div>
+                <div id="behavior-description" class="note-box" style="width: 100%; box-sizing: border-box;">
+                    <strong>Seek:</strong> 全速冲向目标。这是最基础的行为。
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 核心行为详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon steering-icon"></div>
+                <h2>3. 行为详解</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3><span class="behavior-tag">Seek</span> 追逐</h3>
+                <p>最简单的行为。计算从自己指向目标的向量，这就是期望速度。</p>
+                <p><code>Desired = Normalize(Target - Position) * MaxSpeed</code></p>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="behavior-tag">Flee</span> 逃避</h3>
+                <p>Seek 的反向版。如果目标在一定范围内，就全速向反方向跑。</p>
+                <p><code>Desired = Normalize(Position - Target) * MaxSpeed</code></p>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="behavior-tag">Arrive</span> 抵达</h3>
+                <p>Seek 的升级版。当接近目标时，慢慢减速，优雅地停在目标点，而不是像 Seek 一样在那儿来回震荡。</p>
+                <p><i>实现细节：</i> 计算距离，如果距离小于减速半径，速度就按比例减小。</p>
+            </div>
+            
+            <div class="step-card">
+                <h3><span class="behavior-tag">Wander</span> 徘徊</h3>
+                <p>让角色随机闲逛，但又要保持动作平滑（不能像布朗运动那样抖动）。</p>
+                <p><i>实现技巧：</i> 在角色前方投射一个圆，在圆上随机选一个点作为临时目标，每帧微调这个点。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实现 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon boids-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+            <p>这是一个通用的 Steering Agent 基础类，你可以很容易地扩展它。</p>
+
+            <div class="code-step">
+                <h3>SteeringAgent.cs</h3>
+                <pre><code class="language-csharp">
+using UnityEngine;
+
+public class SteeringAgent : MonoBehaviour
+{
+    public float maxSpeed = 5f;
+    public float maxForce = 0.1f;
+    public float mass = 1f;
+
+    private Vector3 velocity;
+    
+    void Update()
+    {
+        // 1. 计算操纵力 (Steering Force)
+        // 这里可以叠加多种行为，例如: Seek(target) + Separation(neighbors)
+        Vector3 steering = Seek(target.position);
+        
+        // 2. 应用力 (F = ma => a = F/m)
+        // 为了简化，我们忽略质量或设为1，直接把力加到速度上
+        // 记得限制最大转向力，这决定了角色转弯的"灵活性"
+        steering = Vector3.ClampMagnitude(steering, maxForce);
+        steering /= mass;
+    
+        velocity += steering;
+        
+        // 3. 限制最大速度
+        velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
+        
+        // 4. 更新位置
+        transform.position += velocity * Time.deltaTime;
+        
+        // 5. 朝向移动方向
+        if (velocity.sqrMagnitude > 0.01f)
+        {
+            transform.rotation = Quaternion.LookRotation(velocity);
+        }
+    }
+
+    // Seek 行为实现
+    public Vector3 Seek(Vector3 targetPos)
+    {
+        // 期望速度：从当前位置指向目标，全速前进
+        Vector3 desiredVelocity = (targetPos - transform.position).normalized * maxSpeed;
+        
+        // 转向力 = 期望速度 - 当前速度
+        return desiredVelocity - velocity;
+    }
+    
+    // Arrive 行为实现
+    public Vector3 Arrive(Vector3 targetPos, float slowingRadius)
+    {
+        Vector3 toTarget = targetPos - transform.position;
+        float distance = toTarget.magnitude;
+        
+        if (distance < 0.01f) return Vector3.zero;
+        
+        float rampedSpeed = maxSpeed * (distance / slowingRadius);
+        float clippedSpeed = Mathf.Min(rampedSpeed, maxSpeed);
+        
+        Vector3 desiredVelocity = (toTarget / distance) * clippedSpeed;
+        
+        return desiredVelocity - velocity;
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+        
+        <!-- 5. 组合与应用 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>5. 组合的力量</h2>
+            </div>
+            <p>Steering Behaviors 最强大的地方在于它们可以<strong>叠加</strong>。</p>
+            <p>比如：</p>
+            <ul style="list-style-type: square; padding-left: 20px;">
+                <li><strong>排队 (Queue):</strong> Follow Path (路径跟随) + Separation (分离) + Alignment (对齐)</li>
+                <li><strong>围攻 (Surround):</strong> Seek (追逐目标) + Separation (互相散开)</li>
+                <li><strong>牧羊 (Herding):</strong> Cohesion (聚集羊群) + Flee (躲避牧羊犬)</li>
+            </ul>
+            <p>通过简单的加权求和（Weight Sum），你可以创造出令人惊叹的复杂智能行为。</p>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>这就是游戏 AI 的基础魔术：简单的向量加减，创造出生命的错觉。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

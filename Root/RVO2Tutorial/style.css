@@ -1,0 +1,286 @@
+/* 保持项目统一风格：蓝底、黄标题、红按钮 */
+:root {
+    --bg-color: #89CFF0; /* 统一浅蓝背景 */
+    --card-bg: #FFFFFF;
+    --text-color: #333333;
+    --border-color: #000000;
+    --primary-color: #FFD93D; /* 统一黄色标题 */
+    --secondary-color: #00BCD4; /* 青色，用于强调 RVO 的计算几何感 */
+    --accent-color: #FF6B6B; /* 统一红色按钮 */
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --border-width: 4px;
+    --shadow-offset: 6px;
+    --code-bg: #282c34;
+}
+
+body {
+    font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* 像素按钮 */
+.pixel-btn {
+    font-family: 'ZCOOL KuaiLe', cursive;
+    background-color: var(--accent-color);
+    color: white;
+    border: 3px solid var(--border-color);
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px var(--border-color);
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.pixel-btn:hover {
+    background-color: #FF5252;
+}
+
+.pixel-btn.active {
+    background-color: #4CAF50;
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px var(--border-color);
+}
+
+/* 像素风格盒子 */
+.pixel-box {
+    background-color: var(--card-bg);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
+    padding: 20px;
+    position: relative;
+    border-radius: 0; 
+}
+
+.header {
+    text-align: center;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+h1 {
+    margin: 10px 0;
+    font-size: 2.5em;
+    text-shadow: 3px 3px 0px rgba(255,255,255,0.5);
+    font-family: 'ZCOOL KuaiLe', cursive;
+}
+
+.subtitle {
+    font-size: 1.2em;
+    color: #555;
+    font-style: italic;
+    font-weight: bold;
+}
+
+h2 {
+    border-bottom: 4px solid var(--bg-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    font-family: 'ZCOOL KuaiLe', cursive;
+}
+
+/* 章节 */
+.tutorial-section {
+    margin-bottom: 0;
+}
+
+.icon-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 4px dashed var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.icon-header h2 {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* 像素图标 */
+.pixel-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+    position: relative;
+    image-rendering: pixelated;
+    background-color: #333;
+    box-shadow: 
+        inset 0 0 0 4px #fff,
+        inset 0 0 0 8px #333;
+}
+
+/* RVO 避障图标 */
+.rvo-icon::before {
+    content: '';
+    position: absolute;
+    top: 30%; left: 30%;
+    width: 12px; height: 12px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    border: 2px solid #000;
+}
+.rvo-icon::after {
+    content: '';
+    position: absolute;
+    top: 70%; left: 70%;
+    width: 12px; height: 12px;
+    background: var(--secondary-color);
+    border-radius: 50%;
+    border: 2px solid #000;
+}
+
+/* 交互演示区 */
+.demo-container {
+    border: 4px solid var(--border-color);
+    padding: 15px;
+    background: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.canvas-container {
+    position: relative;
+    border: 4px solid #333;
+    background: #222; 
+    overflow: hidden;
+    width: 100%;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 400px;
+    image-rendering: pixelated;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    background: #fff;
+    padding: 15px;
+    border: 2px dashed #999;
+}
+
+.behavior-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* 强调框 */
+.note-box {
+    background-color: #fff3cd;
+    border: 2px solid #ffeeba;
+    color: #856404;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* 代码块 */
+pre {
+    background: var(--code-bg);
+    color: #fff;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    border: 2px solid #000;
+}
+
+/* 对比表格 */
+.compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.compare-item {
+    background: #fff;
+    border: 2px solid #000;
+    padding: 10px;
+    text-align: center;
+}
+
+.compare-item h4 {
+    margin: 5px 0;
+    color: var(--secondary-color);
+}
+
+/* 数学公式优化 */
+.math-text {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* 使用等宽字体显示公式 */
+    background: #eee;
+    padding: 2px 4px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    font-size: 0.9em;
+    color: #c7254e; /* 类似 Markdown 代码高亮的红色 */
+}
+
+/* 简单的 VO 示意图容器 */
+.vo-diagram {
+    width: 200px;
+    height: 150px;
+    background: #f0f0f0;
+    border: 2px solid #333;
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 示意图元素：圆锥 */
+.vo-cone {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 60px solid transparent;
+    border-right: 60px solid transparent;
+    border-bottom: 120px solid rgba(255, 0, 0, 0.3); /* 半透明红色 */
+    z-index: 1;
+}
+
+/* 示意图元素：速度点 */
+.vo-point {
+    width: 10px;
+    height: 10px;
+    background: blue;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 2;
+}
+
+.vo-label {
+    font-family: monospace;
+    font-size: 12px;
+    position: absolute;
+    color: #333;
+}

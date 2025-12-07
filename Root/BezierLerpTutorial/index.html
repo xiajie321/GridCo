@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贝塞尔曲线与线性插值 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>贝塞尔曲线与线性插值</h1>
+            <p class="subtitle">从直线到曲线：揭秘平滑移动背后的数学</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon curve-icon"></div>
+                <h2>1. 什么是插值 (Interpolation)？</h2>
+            </div>
+            <p>在游戏开发中，我们经常需要计算“两个点中间的某个位置”。</p>
+            <p>比如摄像机移动、动画过渡、子弹轨迹。只要涉及从 A 到 B 的平滑变化，就离不开插值。</p>
+            <div class="note-box">
+                最基础的公式：<span class="math-text">result = start + (end - start) * t</span>
+                <br>或者写作：<span class="math-text">result = (1 - t) * start + t * end</span>
+                <br>其中 <strong>t</strong> 是进度（0 到 1）。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon curve-icon"></div>
+                <h2>2. 曲线实验室</h2>
+            </div>
+            <p>拖动彩色的控制点 (P0, P1, P2...) 来改变形状。拖动下方的滑块来观察 t 的变化过程。</p>
+            
+            <div class="demo-container">
+                <div class="behavior-buttons">
+                    <button class="pixel-btn active" data-mode="lerp">Lerp (线性插值)</button>
+                    <button class="pixel-btn" data-mode="quad">二次贝塞尔 (3点)</button>
+                    <button class="pixel-btn" data-mode="cubic">三次贝塞尔 (4点)</button>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="bezier-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group" style="width: 100%;">
+                        <label>进度 t: <span id="val-t">0.50</span></label>
+                        <input type="range" id="range-t" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="control-group">
+                        <label><input type="checkbox" id="check-auto" checked> 自动播放</label>
+                        <label><input type="checkbox" id="check-lines" checked> 显示辅助线</label>
+                    </div>
+                </div>
+                
+                <div class="note-box" id="mode-desc">
+                    <strong>Lerp:</strong> 最简单的直线运动。只有起点 P0 和终点 P1。
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 原理详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon curve-icon"></div>
+                <h2>3. 贝塞尔曲线原理：层层插值</h2>
+            </div>
+            <p>贝塞尔曲线看起来很复杂，其实它的本质就是<strong>多次 Lerp</strong> (De Casteljau 算法)。</p>
+            
+            <div class="step-card">
+                <h3>二次贝塞尔 (3个点: P0, P1, P2)</h3>
+                <ol>
+                    <li>在线段 P0-P1 上插值得到点 <strong>Q0</strong>。</li>
+                    <li>在线段 P1-P2 上插值得到点 <strong>Q1</strong>。</li>
+                    <li>最后，在线段 Q0-Q1 上插值得到最终点 <strong>B</strong>。</li>
+                </ol>
+                <p>这就是为什么你在演示中会看到那个绿色的辅助线在动！它就是 Q0-Q1。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>三次贝塞尔 (4个点: P0, P1, P2, P3)</h3>
+                <p>套娃原理：</p>
+                <ol>
+                    <li>第一层：算出 3 个中间点 (Q0, Q1, Q2)。</li>
+                    <li>第二层：用这 3 个点算出 2 个中间点 (R0, R1)。</li>
+                    <li>第三层：用这 2 个点算出最终点 <strong>B</strong>。</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon curve-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>1. 线性插值 (Lerp)</h3>
+                <pre><code class="language-csharp">
+// Unity 自带函数
+transform.position = Vector3.Lerp(startPos, endPos, t);
+
+// 手写公式
+Vector3 MyLerp(Vector3 a, Vector3 b, float t) {
+    t = Mathf.Clamp01(t); // 确保 t 在 0~1 之间
+    return a + (b - a) * t;
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. 二次贝塞尔 (Quadratic Bezier)</h3>
+                <pre><code class="language-csharp">
+Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t) {
+    t = Mathf.Clamp01(t);
+    float oneMinusT = 1f - t;
+    
+    // 公式法 (展开后)
+    // B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+    return oneMinusT * oneMinusT * p0 +
+           2f * oneMinusT * t * p1 +
+           t * t * p2;
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>3. 三次贝塞尔 (Cubic Bezier)</h3>
+                <pre><code class="language-csharp">
+Vector3 CubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t) {
+    t = Mathf.Clamp01(t);
+    float u = 1f - t;
+    float tt = t * t;
+    float uu = u * u;
+    
+    // B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+    return uu * u * p0 +    // (1-t)^3
+           3f * uu * t * p1 + // 3(1-t)^2 t
+           3f * u * tt * p2 + // 3(1-t) t^2
+           tt * t * p3;       // t^3
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p><strong>进阶知识：</strong> 双线性插值 (Bilinear) 就是在二维平面上做三次 Lerp（X轴两次，Y轴一次）。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

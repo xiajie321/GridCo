@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分离轴定理 (SAT) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>分离轴定理 (SAT)</h1>
+            <p class="subtitle">凸多边形碰撞检测的终极武器</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon shape-icon"></div>
+                <h2>1. 什么是“分离轴”？</h2>
+            </div>
+            <p>想象两个物体。如果它们<strong>没有</strong>撞在一起，那么一定存在一条缝隙能把它们隔开。</p>
+            <p><strong>SAT (Separating Axis Theorem)</strong> 的核心思想就是：只要能找到一个角度（轴），把两个物体投影上去，发现它们的影子不重叠，那么它们就肯定没撞。</p>
+            <div class="note-box">
+                <strong>逆否命题：</strong> 如果在<strong>所有</strong>可能的轴上投影都重叠，那么它们一定撞了。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon shape-icon"></div>
+                <h2>2. 碰撞实验室</h2>
+            </div>
+            <p>拖动<strong>红色形状</strong>去撞击蓝色形状。观察周围的灰色轴线和投影区间。</p>
+            <p>当找到一条分离轴时，该轴会变绿，表示“未碰撞”。</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="sat-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="note-box" id="collision-status" style="text-align: center; font-size: 1.2em;">
+                    状态：未检测
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 算法详解 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon shape-icon"></div>
+                <h2>3. 算法步骤</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>第一步：找轴 (Axes)</h3>
+                <p>我们要检测哪些轴？不可能检测无数个角度。</p>
+                <p>对于凸多边形，只需要检测<strong>每条边的法线 (Normal)</strong> 即可。比如两个矩形，最多只需要检测 4+4=8 条轴（平行轴去重后其实只有4条）。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：投影 (Projection)</h3>
+                <p>把多边形的所有顶点投影到轴上（点乘）。找到最大值和最小值。</p>
+                <p><span class="math-text">min = dot(vertex, axis)</span></p>
+            </div>
+
+            <div class="step-card">
+                <h3>第三步：重叠检测 (Overlap)</h3>
+                <p>比较两个区间 [minA, maxA] 和 [minB, maxB]。</p>
+                <p>如果 <span class="math-text">maxA < minB</span> 或者 <span class="math-text">maxB < minA</span>，说明有间隙 -> <strong>找到分离轴！退出！没撞！</strong></p>
+            </div>
+            
+            <div class="step-card">
+                <h3>第四步：MTV (最小平移向量)</h3>
+                <p>如果所有轴都重叠了，物体真的撞了。我们要把它推出来。</p>
+                <p>找到<strong>重叠量最小</strong>的那条轴，沿着那个方向把物体推开，推开距离等于重叠量。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon shape-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>SAT 检测核心逻辑</h3>
+                <pre><code class="language-csharp">
+public static bool CheckCollision(Polygon a, Polygon b, out Vector3 mtv) {
+    mtv = Vector3.zero;
+    float minOverlap = float.MaxValue;
+    Vector3 smallestAxis = Vector3.zero;
+
+    // 1. 获取所有待检测的轴 (A和B所有边的法线)
+    List<Vector3> axes = new List<Vector3>();
+    axes.AddRange(a.GetNormals());
+    axes.AddRange(b.GetNormals());
+
+    foreach (Vector3 axis in axes) {
+        // 2. 投影
+        float minA, maxA, minB, maxB;
+        Project(a, axis, out minA, out maxA);
+        Project(b, axis, out minB, out maxB);
+
+        // 3. 检查重叠
+        if (maxA < minB || maxB < minA) {
+            return false; // 找到分离轴，没撞！
+        }
+
+        // 计算重叠量 (用于 MTV)
+        float overlap = Mathf.Min(maxA, maxB) - Mathf.Max(minA, minB);
+        if (overlap < minOverlap) {
+            minOverlap = overlap;
+            smallestAxis = axis;
+        }
+    }
+
+    // 4. 计算 MTV (推开向量)
+    mtv = smallestAxis * minOverlap;
+    return true; // 所有轴都重叠，撞了！
+}
+
+void Project(Polygon p, Vector3 axis, out float min, out float max) {
+    min = float.MaxValue;
+    max = float.MinValue;
+    foreach (var vert in p.vertices) {
+        float proj = Vector3.Dot(vert, axis); // 点乘即投影长度
+        if (proj < min) min = proj;
+        if (proj > max) max = proj;
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p><strong>注意：</strong> SAT 只适用于凸多边形。如果是凹多边形，请先分解成多个凸多边形。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

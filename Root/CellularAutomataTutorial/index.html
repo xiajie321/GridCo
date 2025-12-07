@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元胞自动机 (CA) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>元胞自动机 (CA)</h1>
+            <p class="subtitle">上帝的画笔：用简单规则创造生命</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cell-icon"></div>
+                <h2>1. 什么是元胞自动机？</h2>
+            </div>
+            <p>想象一个无限大的棋盘，每个格子里住着一个细胞。细胞只有两种状态：<strong>生</strong> (1) 或 <strong>死</strong> (0)。</p>
+            <p>它们没有大脑，也没有中央指挥，只遵循几条简单的"邻里公约"。但就是这样简单的规则，却能演化出极其复杂的图案、结构，甚至能模拟出生命的繁衍和消亡！</p>
+            <div class="note-box">
+                最著名的例子：<strong>康威生命游戏 (Conway's Game of Life)</strong>。
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cell-icon"></div>
+                <h2>2. 互动实验室：生命游戏</h2>
+            </div>
+            <p>你可以在画板上点击绘制细胞，或者使用预设图案。按下播放键，见证奇迹！</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="ca-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; margin-bottom: 10px;">
+                        <button id="btn-play" class="pixel-btn accent" style="width: 100px;">暂停</button>
+                        <button id="btn-random" class="pixel-btn">随机填充</button>
+                        <button id="btn-gun" class="pixel-btn">预设：滑翔机枪</button>
+                        <button id="btn-clear" class="pixel-btn" style="background-color: #999;">清空</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>演化速度: <span id="val-speed">30</span> FPS</label>
+                        <input type="range" id="range-speed" min="1" max="60" step="1" value="30">
+                    </div>
+                </div>
+                <p><strong>操作提示：</strong> 在黑色区域按住鼠标左键绘制/擦除细胞。</p>
+            </div>
+        </div>
+
+        <!-- 3. 核心规则 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>3. 生命游戏规则 (23/3)</h2>
+            </div>
+            <p>每个细胞都会检查它周围的 8 个邻居（上下左右+对角线）。</p>
+            
+            <div class="step-card">
+                <div class="step-badge">1</div>
+                <h3>孤独与拥挤 (死亡条件)</h3>
+                <p>如果一个活细胞周围的活邻居 <strong>少于 2 个</strong>（孤独）或者 <strong>多于 3 个</strong>（拥挤），它在下一回合就会<strong>死亡</strong>。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">2</div>
+                <h3>稳定生存 (存活条件)</h3>
+                <p>如果一个活细胞周围有 <strong>2 个或 3 个</strong> 活邻居，它将继续<strong>存活</strong>到下一回合。</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-badge">3</div>
+                <h3>繁衍 (重生条件)</h3>
+                <p>如果一个<strong>死细胞</strong>周围正好有 <strong>3 个</strong> 活邻居，它在下一回合会变成<strong>活细胞</strong>。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cell-icon"></div>
+                <h2>4. C# 代码实现 (Unity)</h2>
+            </div>
+            <p>最简单的实现是用二维数组。但为了性能，我们可以用一维数组或者 Compute Shader。</p>
+
+            <div class="code-step">
+                <h3>CPU 基础版</h3>
+                <pre><code class="language-csharp">
+// 伪代码
+public void UpdateGrid()
+{
+    // 需要两个数组：当前状态和下一帧状态
+    // 因为所有细胞的更新必须是"同时"的，不能读写同一个数组
+    
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            int neighbors = CountNeighbors(x, y);
+            bool isAlive = currentGrid[x, y] == 1;
+            
+            if (isAlive && (neighbors < 2 || neighbors > 3)) {
+                nextGrid[x, y] = 0; // 死
+            }
+            else if (!isAlive && neighbors == 3) {
+                nextGrid[x, y] = 1; // 生
+            }
+            else {
+                nextGrid[x, y] = currentGrid[x, y]; // 保持
+            }
+        }
+    }
+    
+    // 交换数组 (Swap Buffer)
+    var temp = currentGrid;
+    currentGrid = nextGrid;
+    nextGrid = temp;
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- 5. 算法对比 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon rule-icon"></div>
+                <h2>5. 不同的模拟流派</h2>
+            </div>
+            
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>方法</th>
+                        <th>核心思想</th>
+                        <th>优点</th>
+                        <th>缺点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>元胞自动机 (CA)</strong></td>
+                        <td>离散空间 + 局部规则</td>
+                        <td><strong>涌现极强</strong>、并行计算效率高 (GPU)、适合模拟流体/沙子/火/地图生成</td>
+                        <td>难以精确模拟刚体物理、无法实现复杂的 AI 逻辑</td>
+                    </tr>
+                    <tr>
+                        <td><strong>物理引擎 (PhysX)</strong></td>
+                        <td>连续空间 + 物理公式</td>
+                        <td><strong>真实感强</strong>、精确碰撞、力学反馈</td>
+                        <td>计算量大、物体多了会卡顿 (CPU 瓶颈)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Agent Based (如 Boids)</strong></td>
+                        <td>智能体 + 行为树</td>
+                        <td>适合模拟<strong>生物行为</strong>、群体移动</td>
+                        <td>不适合模拟流体等环境现象</td>
+                    </tr>
+                    <tr>
+                        <td><strong>噪声 (Perlin Noise)</strong></td>
+                        <td>数学函数</td>
+                        <td>生成<strong>自然地形</strong>、纹理</td>
+                        <td>是静态的，本身不会"演化"</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="note-box">
+                <strong>应用场景：</strong>
+                <ul>
+                    <li><strong>Noita (游戏)</strong>：使用了 Falling Sand (沙子掉落) 算法，本质上就是 CA。</li>
+                    <li><strong>Minecraft</strong>：水的流动、火的蔓延、草的生长，都是简单的 CA。</li>
+                    <li><strong>洞穴生成</strong>：利用 CA 平滑随机噪声，生成自然的洞穴轮廓。</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>从简单的 0 和 1 中，诞生了无限的可能。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

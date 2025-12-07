@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>协程、线程与进程详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>协程 vs 线程 vs 进程</h1>
+            <p class="subtitle">图解并发编程：谁才是性能之王？</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cpu-icon"></div>
+                <h2>1. 傻瓜式类比</h2>
+            </div>
+            <p>想象你在厨房做饭（CPU 执行任务）：</p>
+            
+            <div class="compare-grid">
+                <div class="compare-item process">
+                    <h4><span class="tag process">进程 (Process)</span></h4>
+                    <p><strong>拥有独立的厨房。</strong></p>
+                    <p>比如你家和邻居家。资源（锅碗瓢盆）完全隔离，互不干扰，但沟通困难（得喊）。</p>
+                </div>
+                <div class="compare-item thread">
+                    <h4><span class="tag thread">线程 (Thread)</span></h4>
+                    <p><strong>同一厨房里的多个厨师。</strong></p>
+                    <p>共享资源（锅），干活快，但容易打架（资源竞争，需要锁）。</p>
+                </div>
+                <div class="compare-item coroutine">
+                    <h4><span class="tag coroutine">协程 (Coroutine)</span></h4>
+                    <p><strong>一个厨师分时切菜和煮水。</strong></p>
+                    <p>煮水时去切菜，水开了再回来。没有多个人，只是合理安排时间，省去了切换成本。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cpu-icon"></div>
+                <h2>2. 调度实验室</h2>
+            </div>
+            <p>观察 CPU（中间的处理核心）如何处理任务队列。点击按钮切换模式。</p>
+            
+            <div class="demo-container">
+                <div class="behavior-buttons">
+                    <button class="pixel-btn active" data-mode="process">多进程模式</button>
+                    <button class="pixel-btn" data-mode="thread">多线程模式</button>
+                    <button class="pixel-btn" data-mode="coroutine">协程模式</button>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="concurrency-canvas" width="800" height="400"></canvas>
+                </div>
+                
+                <div class="note-box" id="mode-desc">
+                    <strong>多进程模式：</strong> 每个任务都有自己独立的内存空间（颜色框），切换开销大（闪烁），但互不影响。
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 深入原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cpu-icon"></div>
+                <h2>3. 底层原理深度解析</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>进程 (Process)</h3>
+                <p><strong>定义：</strong> 操作系统分配资源的基本单位。</p>
+                <p><strong>底层：</strong> 拥有独立的虚拟地址空间、文件句柄等。进程间通信 (IPC) 需要通过管道、套接字等，开销大。</p>
+                <p><strong>缺点：</strong> 创建和销毁极慢，内存占用大。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>线程 (Thread)</h3>
+                <p><strong>定义：</strong> CPU 调度的基本单位。</p>
+                <p><strong>底层：</strong> 共享进程的堆内存，但有独立的栈。由操作系统内核调度 (Preemptive Scheduling)。</p>
+                <p><strong>缺点：</strong> 上下文切换 (Context Switch) 需要保存寄存器状态，有一定开销。需要处理死锁、竞态条件。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>协程 (Coroutine)</h3>
+                <p><strong>定义：</strong> 用户态的轻量级线程。</p>
+                <p><strong>底层：</strong> 完全由程序自己控制挂起和恢复，不涉及内核态切换。通常基于状态机或生成器 (Yield) 实现。</p>
+                <p><strong>优点：</strong> 切换极快（纳秒级），无锁机制（因为本质是单线程）。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cpu-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>1. 协程 (Unity Coroutine)</h3>
+                <p>最常用的异步方式，适合延时、分步执行。</p>
+                <pre><code class="language-csharp">
+using UnityEngine;
+using System.Collections;
+
+public class Example : MonoBehaviour
+{
+    void Start() {
+        StartCoroutine(MyCoroutine());
+    }
+
+    IEnumerator MyCoroutine() {
+        Debug.Log("开始煮水");
+        yield return new WaitForSeconds(2.0f); // 挂起，把控制权交还给 Unity
+        Debug.Log("水开了！");
+    }
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>2. 线程 (System.Threading)</h3>
+                <p>适合繁重的计算任务（如寻路、图像处理），避免卡死主线程。</p>
+                <pre><code class="language-csharp">
+using System.Threading;
+
+public class ThreadExample
+{
+    void StartThread() {
+        Thread t = new Thread(ComplexCalculation);
+        t.Start();
+    }
+
+    void ComplexCalculation() {
+        // 这里是后台线程，不能访问 Unity 组件 (Transform 等)
+        int result = 0;
+        for (int i = 0; i < 1000000; i++) result += i;
+        Debug.Log("计算完成: " + result);
+    }
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>3. 异步 (Async/Await)</h3>
+                <p>C# 的现代语法糖，底层基于状态机和线程池，比 Coroutine 更强大。</p>
+                <pre><code class="language-csharp">
+using System.Threading.Tasks;
+
+public async void StartTask() {
+    Debug.Log("开始下载");
+    // 不会卡住主线程
+    string data = await DownloadDataAsync(); 
+    Debug.Log("下载完成: " + data);
+}
+
+async Task<string> DownloadDataAsync() {
+    await Task.Delay(1000); // 模拟耗时
+    return "数据内容";
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p><strong>总结：</strong> I/O 密集型用协程/Async，计算密集型用线程，独立应用用进程。</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>
