@@ -119,12 +119,14 @@ function checkSAT(a, b) {
 function project(poly, axis) {
     let min = Infinity;
     let max = -Infinity;
+    let minPoint = null;
+    let maxPoint = null;
     for (let v of poly.vertices) {
         let dot = v.x * axis.x + v.y * axis.y;
-        if (dot < min) min = dot;
-        if (dot > max) max = dot;
+        if (dot < min) { min = dot; minPoint = v; }
+        if (dot > max) { max = dot; maxPoint = v; }
     }
-    return { min, max };
+    return { min, max, minPoint, maxPoint };
 }
 
 function overlap(a, b) {
@@ -149,32 +151,56 @@ function drawAxisAndProjection(axis, a, b, isSeparating) {
     ctx.lineWidth = isSeparating ? 4 : 1;
     ctx.stroke();
 
-    // 如果是分离轴，绘制投影区间
-    if (isSeparating) {
-        let pA = project(a, axis);
-        let pB = project(b, axis);
-        
-        drawProjectionInterval(pA, axis, center, '#FF9800', 10);
-        drawProjectionInterval(pB, axis, center, '#2196F3', -10);
-    }
+    // 总是绘制投影区间 (无论是分离轴还是MTV轴)
+    let pA = project(a, axis);
+    let pB = project(b, axis);
+    
+    // 增加偏移量，使投影更明显
+    drawProjectionInterval(pA, axis, center, '#FF9800', 20);
+    drawProjectionInterval(pB, axis, center, '#2196F3', -20);
 }
 
 function drawProjectionInterval(p, axis, center, color, offset) {
-    // 将投影值映射回屏幕坐标 (相对于 center)
-    let start = { x: center.x + axis.x * p.min, y: center.y + axis.y * p.min };
-    let end = { x: center.x + axis.x * p.max, y: center.y + axis.y * p.max };
-    
-    // 稍微偏移一点，避免重叠
-    let perp = { x: -axis.y, y: axis.x };
-    start.x += perp.x * offset; start.y += perp.y * offset;
-    end.x += perp.x * offset; end.y += perp.y * offset;
+    // 修正：减去 center 在轴上的投影，以正确显示相对于 center 的位置
+    let centerProj = center.x * axis.x + center.y * axis.y;
+    let minVal = p.min - centerProj;
+    let maxVal = p.max - centerProj;
 
+    // 将投影值映射回屏幕坐标 (相对于 center)
+    let start = { x: center.x + axis.x * minVal, y: center.y + axis.y * minVal };
+    let end = { x: center.x + axis.x * maxVal, y: center.y + axis.y * maxVal };
+    
+    // 偏移
+    let perp = { x: -axis.y, y: axis.x };
+    let startDisp = { x: start.x + perp.x * offset, y: start.y + perp.y * offset };
+    let endDisp = { x: end.x + perp.x * offset, y: end.y + perp.y * offset };
+
+    // 绘制投影线
     ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
+    ctx.moveTo(startDisp.x, startDisp.y);
+    ctx.lineTo(endDisp.x, endDisp.y);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 8;
     ctx.stroke();
+
+    // 绘制连接线 (虚线) - 帮助视觉定位
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#999';
+    
+    // 从 minPoint 到 startDisp
+    ctx.beginPath();
+    ctx.moveTo(p.minPoint.x, p.minPoint.y);
+    ctx.lineTo(startDisp.x, startDisp.y);
+    ctx.stroke();
+
+    // 从 maxPoint 到 endDisp
+    ctx.beginPath();
+    ctx.moveTo(p.maxPoint.x, p.maxPoint.y);
+    ctx.lineTo(endDisp.x, endDisp.y);
+    ctx.stroke();
+    ctx.restore();
 }
 
 function draw() {
@@ -191,7 +217,7 @@ function draw() {
     } else {
         // 如果碰撞，画出推开方向
         // 简单画一条线示意 MTV
-        // drawAxisAndProjection(result.mtvAxis, polyA, polyB, false);
+        drawAxisAndProjection(result.mtvAxis, polyA, polyB, false);
         statusBox.innerHTML = `状态：<span style="color:red">碰撞！</span> (最小重叠: ${result.mtvMag.toFixed(1)})`;
         statusBox.style.borderColor = "red";
         
