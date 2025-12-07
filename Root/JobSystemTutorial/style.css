@@ -1,0 +1,354 @@
+/* 继承并扩展全局样式 */
+:root {
+    --primary-color: #4CAF50;
+    --secondary-color: #2196F3;
+    --danger-color: #F44336;
+    --warning-color: #FFC107;
+    --code-bg: #282c34;
+    /* 确保 accent-color 可用，如果全局未定义则回退 */
+    --accent-color: #FF6B6B;
+}
+
+.tutorial-section {
+    margin-bottom: 30px;
+}
+
+.icon-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 4px dashed #000;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* 像素图标绘制 */
+.pixel-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+    position: relative;
+    image-rendering: pixelated;
+}
+
+/* 简单的 CPU 图标样式 */
+.cpu-icon {
+    background: #333;
+    box-shadow: 
+        inset 0 0 0 4px #fff,
+        inset 0 0 0 8px #333;
+}
+.cpu-icon::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px; height: 12px;
+    background: #FFD93D;
+}
+
+/* 齿轮图标 */
+.gear-icon {
+    background: radial-gradient(circle, #333 40%, transparent 41%),
+                conic-gradient(from 0deg, #333 0deg 30deg, transparent 30deg 60deg, #333 60deg 90deg, transparent 90deg 120deg, #333 120deg 150deg, transparent 150deg 180deg, #333 180deg 210deg, transparent 210deg 240deg, #333 240deg 270deg, transparent 270deg 300deg, #333 300deg 330deg, transparent 330deg 360deg);
+}
+
+.chart-icon {
+    background: linear-gradient(to top, #333 30%, transparent 30%) 5px bottom / 8px 100% no-repeat,
+                linear-gradient(to top, #333 60%, transparent 60%) 16px bottom / 8px 100% no-repeat,
+                linear-gradient(to top, #333 90%, transparent 90%) 27px bottom / 8px 100% no-repeat;
+}
+
+.code-icon::before {
+    content: '< >';
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 24px;
+    color: #333;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.warning-icon {
+    background: #FFD93D;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+.warning-icon::after {
+    content: '!';
+    position: absolute;
+    top: 55%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 24px;
+    color: #000;
+}
+
+.list-icon {
+    background: repeating-linear-gradient(#333, #333 4px, transparent 4px, transparent 8px);
+    background-size: 30px 24px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+
+/* 概念对比卡片 */
+.concept-comparison {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.concept-card {
+    flex: 1;
+    min-width: 280px;
+    background: #f4f4f4;
+    border: 4px solid #ddd;
+    padding: 15px;
+    transition: transform 0.2s;
+}
+
+.concept-card.highlight {
+    background: #E8F5E9;
+    border-color: var(--primary-color);
+}
+
+.concept-card h3 {
+    margin-top: 0;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+    padding-bottom: 5px;
+}
+
+.visual-demo {
+    height: 120px;
+    background: #fff;
+    border: 2px solid #ccc;
+    margin: 10px 0;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 厨师动画元素 */
+.chef-main {
+    width: 60px;
+    height: 60px;
+    background: #FFD93D;
+    border: 4px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 2;
+}
+
+.workers-container {
+    display: flex;
+    gap: 10px;
+    margin-left: 20px;
+}
+
+.worker {
+    width: 40px;
+    height: 40px;
+    background: var(--secondary-color);
+    border: 4px solid #000;
+    color: #fff;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
+}
+
+.warn-text { color: var(--danger-color); font-weight: bold; }
+.success-text { color: var(--primary-color); font-weight: bold; }
+
+/* 步骤卡片 */
+.step-card {
+    background: #fff;
+    border: 2px dashed #999;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.step-card h3 {
+    color: #333;
+    margin-top: 0;
+}
+
+.note-list li {
+    margin-bottom: 5px;
+}
+
+/* 交互演示区 */
+.demo-container {
+    border: 4px solid #000;
+    padding: 15px;
+    background: #eee;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.stats-display {
+    margin-left: auto;
+    font-family: monospace;
+    font-size: 1.2em;
+    background: #000;
+    color: #0f0;
+    padding: 5px 10px;
+}
+
+.visualizer {
+    margin-bottom: 15px;
+    background: #222;
+    padding: 10px;
+    border: 2px solid #555;
+    color: #fff;
+    font-family: monospace;
+}
+
+.thread-track {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    height: 30px;
+}
+
+.thread-track-group {
+    border-top: 1px dashed #555;
+    padding-top: 10px;
+}
+
+.track-label {
+    width: 100px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 20px;
+    background: #333;
+    position: relative;
+}
+
+.worker-track {
+    height: 15px;
+    background: #333;
+    margin-bottom: 5px;
+    margin-left: 100px;
+    position: relative;
+}
+
+.fill {
+    height: 100%;
+    background: var(--danger-color);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+#simulation-canvas {
+    background: #fff;
+    border: 2px solid #000;
+    width: 100%;
+}
+
+/* 代码步骤 */
+.code-step {
+    margin-bottom: 20px;
+}
+
+.code-step h3 {
+    background: #eee;
+    padding: 5px 10px;
+    border-left: 5px solid var(--secondary-color);
+    margin-bottom: 5px;
+}
+
+/* 避坑列表 */
+.danger-list {
+    list-style: none;
+    padding: 0;
+}
+
+.danger-list li {
+    background: #FFF3E0;
+    border-left: 5px solid var(--warning-color);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.danger-list li strong {
+    color: #D84315;
+}
+
+/* 像素表格 */
+.pixel-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 4px solid #000;
+}
+
+.pixel-table th, .pixel-table td {
+    border: 2px solid #000;
+    padding: 10px;
+    text-align: left;
+}
+
+.pixel-table th {
+    background: #FFD93D;
+}
+
+.pixel-table tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* 像素按钮 - 从 GridCollisionTutorial/style.css 移植以保持一致 */
+.pixel-btn {
+    font-family: 'ZCOOL KuaiLe', cursive;
+    background-color: var(--accent-color);
+    color: white;
+    border: 3px solid #000;
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.pixel-btn:hover {
+    background-color: #FF5252;
+}
+
+.pixel-btn.secondary {
+    background-color: #9E9E9E;
+}
+
+.pixel-btn.danger {
+    background-color: var(--danger-color);
+}
+
+.pixel-btn.action {
+    background-color: var(--secondary-color);
+}

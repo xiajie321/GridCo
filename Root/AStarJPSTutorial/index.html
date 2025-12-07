@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* 与 JPS 寻路算法详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="nav-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>A* 与 JPS 寻路算法</h1>
+            <p class="subtitle">从"盲目乱撞"到"精准导航"的进化之路。</p>
+        </header>
+
+        <div class="pixel-box tutorial-section">
+            <h2>1. 什么是寻路？</h2>
+            <p>想象你在一个迷宫里，你要找到出口。你会怎么走？</p>
+            <ul>
+                <li><strong>乱撞 (DFS/BFS)</strong>：不管三七二十一，见路就走，直到撞墙或者找到出口。</li>
+                <li><strong>有指南针 (A*)</strong>：你知道出口在哪个方向，所以你总是优先尝试朝那个方向走。</li>
+                <li><strong>老司机 (JPS)</strong>：你不仅知道方向，还知道"这条直路一眼望不到头，没岔路我就直接跑过去，不用每一步都看地图"。</li>
+            </ul>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>2. 交互体验：亲自指挥</h2>
+            <p><strong>操作说明：</strong></p>
+            <ul>
+                <li>拖动 <span style="color:#4CAF50; font-weight:bold;">绿色</span> 起点和 <span style="color:#F44336; font-weight:bold;">红色</span> 终点来改变位置。</li>
+                <li>在网格上<strong>按住鼠标左键并拖动</strong>来绘制/擦除墙壁。</li>
+                <li>选择不同的算法，点击"开始寻路"观察它们的区别。</li>
+            </ul>
+
+            <div class="demo-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>算法:</label>
+                        <select id="algorithm-select">
+                            <option value="astar">A* (A-Star)</option>
+                            <option value="jps">JPS (跳点搜索)</option>
+                            <option value="dijkstra">Dijkstra (迪杰斯特拉)</option>
+                            <option value="bfs">BFS (广度优先)</option>
+                            <option value="dfs">DFS (深度优先)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>速度:</label>
+                        <input type="range" id="speed-range" min="1" max="100" value="80">
+                    </div>
+                    <div class="control-group">
+                        <button id="btn-run" class="pixel-btn action">开始寻路</button>
+                        <button id="btn-clear" class="pixel-btn secondary">清除路径</button>
+                        <button id="btn-reset" class="pixel-btn danger">重置墙壁</button>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-box" style="background:#4CAF50;"></div>起点</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#F44336;"></div>终点</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#333;"></div>墙壁</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#81C784;"></div>待检查</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#E0E0E0;"></div>已检查</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#FFC107;"></div>最终路径</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#9C27B0;"></div>跳点(JPS)</div>
+                </div>
+
+                <div id="main-grid" class="grid-container">
+                    <!-- 网格由 JS 生成 -->
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">访问节点数: <span id="visited-count">0</span></div>
+                    <div class="stat-item">路径长度: <span id="path-length">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>3. 算法详细步骤解析</h2>
+
+            <div class="step-card">
+                <h3>🧭 A* (A-Star) 寻路步骤</h3>
+                <ol>
+                    <li><strong>初始化</strong>：把起点放入一个叫"开启列表 (Open Set)"的篮子里。</li>
+                    <li><strong>循环检查</strong>：只要篮子里还有节点：
+                        <ul>
+                            <li><strong>挑选</strong>：找出 F 值最小的节点（F = 从起点走的距离 G + 到终点的预估距离 H）。</li>
+                            <li><strong>移除</strong>：把这个节点从开启列表拿出来，放入"关闭列表 (Closed Set)"（表示已经检查过了）。</li>
+                            <li><strong>如果是终点</strong>：恭喜！路径找到了，沿着父节点往回找就是完整路径。</li>
+                            <li><strong>检查邻居</strong>：看它周围的格子：
+                                <ul>
+                                    <li>如果是墙壁或已经在关闭列表中，忽略。</li>
+                                    <li>如果不在开启列表中，或者这次找到的路比之前的更短：
+                                        <ul>
+                                            <li>更新它的 G、H、F 值。</li>
+                                            <li>设置它的父节点为当前节点。</li>
+                                            <li>把它加入开启列表。</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="step-card">
+                <h3>🐇 JPS (跳点搜索) 步骤</h3>
+                <p>JPS 是 A* 的优化版，核心在于<strong>不把所有邻居都加进列表</strong>，而是直接跳到关键点。</p>
+                <ol>
+                    <li><strong>初始化</strong>：同 A*，起点入列。</li>
+                    <li><strong>循环</strong>：取出 F 值最小的节点作为"当前父节点"。</li>
+                    <li><strong>跳跃 (Pruning)</strong>：不只是检查邻居，而是沿直线方向一直"跑"，直到：
+                        <ul>
+                            <li><strong>撞墙</strong>：此路不通，停止。</li>
+                            <li><strong>到达终点</strong>：找到了！</li>
+                            <li><strong>发现强制邻居</strong>：如果这一步的侧面之前是墙，现在突然变成路了（意味着这里是墙角，必须转弯才能去那边），那么当前点就是<strong>跳点</strong>。</li>
+                            <li><strong>(垂直移动时) 发现水平方向有跳点</strong>：如果我是向上走的，但我发现向左或向右看能找到跳点，那么当前点也是跳点（因为它是一个潜在的拐点）。</li>
+                        </ul>
+                    </li>
+                    <li><strong>添加跳点</strong>：如果找到了跳点，才把它加入开启列表（而不是像 A* 那样把路径上所有普通格子都加进去）。</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>4. 算法大比拼</h2>
+            
+            <div class="step-card">
+                <h3>🐢 盲目搜索：BFS & DFS</h3>
+                <p><strong>广度优先 (BFS)</strong>：像水波纹一样向四周扩散。它保证能找到最短路径，但因为它没有目标感，它会把周围所有能走的地方都走一遍，效率很低。</p>
+                <p><strong>深度优先 (DFS)</strong>：一条路走到黑，撞墙了再回头。它不一定能找到最短路径，而且路径往往弯弯曲曲。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>🧭 启发式搜索：A* (A-Star)</h3>
+                <p>A* 是最常用的寻路算法。它的核心秘密在于公式：<strong>F = G + H</strong></p>
+                <ul>
+                    <li><strong>G</strong>：从起点走到当前格子的实际距离（已经走过的路）。</li>
+                    <li><strong>H</strong>：从当前格子到终点的<strong>预估距离</strong>（启发值）。通常用曼哈顿距离（横坐标差+纵坐标差）。</li>
+                    <li><strong>F</strong>：综合评分。A* 总是优先检查 F 值最小的格子。</li>
+                </ul>
+                <p>这意味着 A* 会"贪心"地优先往终点方向探索，从而大大减少了搜索范围。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>🐇 极速跳跃：JPS (Jump Point Search)</h3>
+                <p>A* 虽然好，但它有个毛病：它是一步一步"爬"的。在空旷的广场上，每走一步都要把周围邻居加进列表、排序、检查，这很浪费。</p>
+                <p><strong>JPS 的逻辑是</strong>："如果我当前的移动方向前方没有任何障碍物，我就不用停下来思考，直接跳到下一个有意思的地方（跳点）！"</p>
+                <p><strong>什么是跳点？</strong> 通常是那些在障碍物拐角处的点，因为到了那里，你可能需要改变方向。</p>
+                <p><strong>对比：</strong> 在演示中，观察 A* 是一格格绿，而 JPS 是大片大片地扫（蓝色扫描线），只在关键点（紫色）停留。</p>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>5. C# 代码示例</h2>
+            
+            <h3>A* 核心逻辑</h3>
+            <pre><code class="language-csharp">
+public List<Node> FindPath(Node start, Node end)
+{
+    List<Node> openSet = new List<Node>();
+    HashSet<Node> closedSet = new HashSet<Node>();
+    openSet.Add(start);
+
+    while (openSet.Count > 0)
+    {
+        // 1. 取出 F 值最小的节点
+        Node current = openSet[0];
+        for (int i = 1; i < openSet.Count; i++) {
+            if (openSet[i].fCost < current.fCost || openSet[i].fCost == current.fCost && openSet[i].hCost < current.hCost) {
+                current = openSet[i];
+            }
+        }
+
+        openSet.Remove(current);
+        closedSet.Add(current);
+
+        if (current == end) return RetracePath(start, end);
+
+        // 2. 检查邻居
+        foreach (Node neighbor in GetNeighbors(current))
+        {
+            if (!neighbor.walkable || closedSet.Contains(neighbor)) continue;
+
+            int newCostToNeighbor = current.gCost + GetDistance(current, neighbor);
+            if (newCostToNeighbor < neighbor.gCost || !openSet.Contains(neighbor))
+            {
+                neighbor.gCost = newCostToNeighbor;
+                neighbor.hCost = GetDistance(neighbor, end);
+                neighbor.parent = current;
+
+                if (!openSet.Contains(neighbor))
+                    openSet.Add(neighbor);
+            }
+        }
+    }
+    return null;
+}
+            </code></pre>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>做游戏就是为了让玩家在这个虚拟世界里不迷路！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

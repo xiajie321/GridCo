@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D 精灵堆叠 (Sprite Stacking) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>2D 精灵堆叠 (Sprite Stacking)</h1>
+            <p class="subtitle">用 2D 的纸片，堆出 3D 的世界！</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon stack-icon"></div>
+                <h2>1. 什么是"伪 3D"？</h2>
+            </div>
+            <p>想象一下 CT 扫描或者切片面包。</p>
+            <p>如果你把一根黄瓜切成无数薄片，然后把这些薄片按顺序叠在一起，是不是就还原出了一根立体的黄瓜？</p>
+            <div class="step-card">
+                <h3>核心思想</h3>
+                <p><strong>Sprite Stacking</strong> 就是利用这个原理。我们画很多张 2D 图片，每一张代表物体在不同高度的"切片"。在游戏中，我们将这些图片<strong>一层层向上偏移渲染</strong>。</p>
+                <p>当玩家旋转摄像机时（实际上是旋转每一层图片的渲染角度），由于偏移量的存在，会产生一种立体的视错觉！</p>
+            </div>
+        </div>
+
+        <!-- 2. 互动演示：原理可视化 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon box-icon"></div>
+                <h2>2. 互动实验室：亲手堆叠</h2>
+            </div>
+            <p>这里有一辆用 2D 切片做成的小汽车。试着旋转它，或者把它"拆开"看看！</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="canvas-stack" width="400" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>旋转角度 (Rotation): <span id="val-rotation">0</span>°</label>
+                        <input type="range" id="range-rotation" min="0" max="360" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>层间距 (Spread): <span id="val-spread">1.0</span></label>
+                        <input type="range" id="range-spread" min="0" max="5" step="0.1" value="1.0">
+                    </div>
+                </div>
+                
+                <p><strong>层级拆解 (Layers)：</strong></p>
+                <div class="explode-view" id="layer-container">
+                    <!-- JS 动态生成层级预览 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 实现步骤 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon stack-icon"></div>
+                <h2>3. 如何去实现？</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>第一步：美术素材制作</h3>
+                <p>这是最关键的一步。你需要把物体"切"开画。</p>
+                <ul>
+                    <li>底部（Layer 0）：轮胎阴影、底盘</li>
+                    <li>中部（Layer 1-3）：车身、车门</li>
+                    <li>顶部（Layer 4-5）：车顶、车窗</li>
+                </ul>
+                <p>通常使用 MagicaVoxel 这样的体素软件建模，然后导出切片最为方便。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：Unity 设置</h3>
+                <p>将导出的切片设为 Sprite，确保 Pixel Per Unit 一致，Pivot 都在物体的中心底部。</p>
+            </div>
+            
+            <div class="step-card">
+                <h3>第三步：代码生成</h3>
+                <p>在运行时，实例化这些切片，并根据旋转角度，计算每一层的偏移量。</p>
+                <p><strong>偏移公式：</strong> <code>Offset = (0, LayerIndex * Spread)</code></p>
+                <p>注意：这里的偏移是视觉上的。实际上我们通常是把所有层父子物体化，或者在 Update 中实时计算位置。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon code-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <p>这是一个简单的 Sprite Stacking 控制脚本。</p>
+
+            <div class="code-step">
+                <h3>初始化堆叠</h3>
+                <pre><code class="language-csharp">
+using UnityEngine;
+using System.Collections.Generic;
+
+public class SpriteStacker : MonoBehaviour
+{
+    [Header("设置")]
+    public List<Sprite> layers; // 在编辑器里把切片按顺序拖进去
+    public float pixelPerUnit = 16f; // 像素密度
+    public float layerInterval = 1f; // 层间距系数
+
+    private List<Transform> layerObjects = new List<Transform>();
+
+    void Start()
+    {
+        // 1. 生成所有层
+        for (int i = 0; i < layers.Count; i++)
+        {
+            GameObject go = new GameObject($"Layer_{i}");
+            go.transform.SetParent(transform);
+            
+            // 添加 SpriteRenderer
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = layers[i];
+            sr.sortingOrder = i; // 确保渲染顺序正确
+
+            // 关键：初始位置归零
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            
+            layerObjects.Add(go.transform);
+        }
+    }
+
+    void Update()
+    {
+        // 2. 实时旋转处理
+        // 假设我们想让物体旋转。注意：实际是在旋转每一张图片。
+        // 对于 Sprite Stacking，"旋转"其实只是改变图片的渲染角度
+        // 但为了产生 3D 效果，每一层需要根据当前的旋转角度，向"上"偏移
+        
+        // 更简单的实现方式：
+        // 直接旋转父物体 (transform.rotation)
+        // 然后每一层只需要固定在本地坐标的 Y 轴偏移即可！
+        // 因为父物体旋转了，子物体的本地 Y 轴也会跟着转吗？
+        // 不！这是 2D 游戏。
+        
+        // 正确的 2D 模拟 3D 逻辑：
+        // 每一层的位置 = 父物体位置 + (0, i * interval)
+        // 旋转图片本身 = 这里的旋转角度
+        
+        // 让我们用最简单的"Billboard"方式：
+        // 父物体负责逻辑位置。
+        // 子物体负责渲染。
+        
+        float angle = transform.rotation.eulerAngles.z; // 假设我们用 Z 轴控制朝向
+        
+        for (int i = 0; i < layerObjects.Count; i++)
+        {
+            // 每一层向上偏移
+            // 这里的 'Up' 是指屏幕的上方，加上一点透视偏移
+            // 实际上在 Top-Down 游戏中，只要修改 localPosition.y 即可
+            
+            float yOffset = i / pixelPerUnit * layerInterval;
+            layerObjects[i].localPosition = new Vector3(0, yOffset, 0);
+            
+            // 这一步很重要：所有层必须保持旋转一致
+            // 如果父物体转了，子物体本地不用动
+        }
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- 5. 进阶优化：Shader 与 图集 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon gear-icon"></div> <!-- 假设 gear icon 样式已定义，否则使用 box-icon 或其他 -->
+                <h2>5. 进阶：使用 Shader 极致优化</h2>
+            </div>
+            <p>如果场景里有 100 个堆叠物体，每个物体 20 层，就会产生 2000 个 Draw Calls，这会让显卡爆炸。</p>
+            <p><strong>解决方案：</strong> 使用 <strong>GPU Instancing</strong> 或者 <strong>Procedural Mesh + Shader</strong>。</p>
+
+            <div class="code-step">
+                <h3>核心思路</h3>
+                <ol>
+                    <li><strong>制作图集 (Atlas)</strong>：将所有层拼在一张大图上（例如 4x4 格子）。</li>
+                    <li><strong>生成网格 (Mesh)</strong>：用代码生成一个 Mesh，包含 N 个面片。</li>
+                    <li><strong>Shader 渲染</strong>：在 Shader 中，根据面片的顶点 ID，自动计算出对应的 UV 偏移，从图集中采样正确的层。</li>
+                </ol>
+            </div>
+
+            <div class="code-step">
+                <h3>Shader 代码片段 (HLSL/Unity Shader)</h3>
+                <pre><code class="language-csharp">
+// 顶点着色器
+v2f vert (appdata v)
+{
+    v2f o;
+    // 1. 基础位置
+    float4 pos = v.vertex;
+    
+    // 2. 根据层级索引 (v.color.a 或者是 uv2.x) 进行 Y 轴偏移
+    // _LayerHeight 是层间距
+    // v.uv2.x 存储了当前是第几层 (0, 1, 2...)
+    float layerIndex = v.uv2.x;
+    
+    // 关键：偏移量是向"上"的 (Object Space Y)
+    // 这样当物体旋转时，偏移方向也会跟着旋转，形成正确的透视
+    pos.y += layerIndex * _LayerHeight;
+    
+    o.vertex = UnityObjectToClipPos(pos);
+    
+    // 3. 计算 UV
+    // 假设图集是横向排列的，_TotalLayers 是总层数
+    // 我们需要把 UV 缩放到 1/_TotalLayers，然后偏移到对应格子
+    o.uv = v.uv; 
+    o.uv.x = (o.uv.x + layerIndex) / _TotalLayers; 
+    
+    return o;
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- 6. 避坑指南 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon warning-icon"></div>
+                <h2>6. 避坑指南 & 性能注意</h2>
+            </div>
+            <ul class="danger-list">
+                <li><strong>Draw Calls 爆炸</strong>：如果你有 20 层，生成 100 个物体，那就是 2000 个 SpriteRenderer！这非常消耗性能。
+                    <br><strong>解决：</strong> 使用 <strong>GPU Instancing</strong> 或者将所有层合并到一个 Mesh 中渲染（高级技巧）。</li>
+                <li><strong>旋转中心</strong>：切片的 Pivot 必须严格对齐（通常是中心），否则旋转起来会散架。</li>
+                <li><strong>物理碰撞</strong>：这只是视觉效果。物理碰撞体（Collider）应该只加在父物体底部，不要给每一层都加。</li>
+            </ul>
+        </div>
+        
+        <!-- 6. 对比总结 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon list-icon"></div>
+                <h2>6. 为什么选择 Sprite Stacking？</h2>
+            </div>
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>方法</th>
+                        <th>优点</th>
+                        <th>缺点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>真 3D 模型</strong></td>
+                        <td>任意视角，光照真实</td>
+                        <td>甚至需要 3D 基础，无法完美复刻像素风</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2D 序列帧 (4方向/8方向)</strong></td>
+                        <td>传统的复古感，性能好</td>
+                        <td>每个角度都要画，工作量巨大，无法平滑旋转</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sprite Stacking</strong></td>
+                        <td><strong>360°平滑旋转</strong>，完美像素风，制作简单（体素转切片）</td>
+                        <td><strong>性能开销大</strong>（层数多时），只能俯视/斜视，不能仰视</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>这种复古又神奇的技术，像不像是在变魔术？</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柏林噪声 (Perlin Noise) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>柏林噪声 (Perlin Noise)</h1>
+            <p class="subtitle">大自然的画笔，让随机变得"自然"。</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dice-icon"></div>
+                <h2>1. 什么是"自然"的随机？</h2>
+            </div>
+            <p>如果我让你画一座山，你会怎么画？</p>
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <h3>普通随机 (Random)</h3>
+                    <canvas id="canvas-random" width="300" height="150"></canvas>
+                    <p>像电视雪花，杂乱无章，毫无规律。</p>
+                </div>
+                <div class="comparison-card">
+                    <h3>柏林噪声 (Perlin)</h3>
+                    <canvas id="canvas-perlin-intro" width="300" height="150"></canvas>
+                    <p>像连绵的山脉，起伏平滑，自然过渡。</p>
+                </div>
+            </div>
+            <p><strong>Ken Perlin</strong> 大神在制作电影《电子世界争霸战》时发明了这种算法，因为他觉得当时的计算机图形太"假"太"生硬"了。他因此获得了奥斯卡技术成就奖！</p>
+        </div>
+
+        <!-- 2. 原理解析 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon wave-icon"></div>
+                <h2>2. 核心原理：梯度与平滑</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>第一步：划分网格</h3>
+                <p>就像网格法一样，把空间分成一个个方格。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：随机梯度</h3>
+                <p>在每个格子的顶点上，随机生成一个方向向量（红色箭头）。</p>
+            </div>
+            
+            <div class="step-card">
+                <h3>第三步：插值计算</h3>
+                <p>对于网格内的任意一点，计算它到四个顶点的距离向量，然后通过点积和缓动函数（Fade Function）进行平滑插值。</p>
+                <p>这就像是在拉扯一块橡皮布，四个角的力决定了布的形状。</p>
+            </div>
+        </div>
+
+        <!-- 3. 互动演示：参数调节 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon terrain-icon"></div>
+                <h2>3. 互动实验室：亲手捏造地形</h2>
+            </div>
+            <p>柏林噪声有几个关键参数，试着调整它们看看效果：</p>
+            
+            <div class="demo-container">
+                <div class="canvas-container">
+                    <canvas id="canvas-playground" width="500" height="300"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>缩放 (Scale): <span id="val-scale">10</span></label>
+                        <input type="range" id="range-scale" min="1" max="50" value="10">
+                    </div>
+                    <div class="control-group">
+                        <label>偏移 X (Offset X): <span id="val-offset-x">0</span></label>
+                        <input type="range" id="range-offset-x" min="0" max="100" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>偏移 Y (Offset Y): <span id="val-offset-y">0</span></label>
+                        <input type="range" id="range-offset-y" min="0" max="100" value="0">
+                    </div>
+                </div>
+                <button id="btn-regen" class="pixel-btn">重新生成种子</button>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon dice-icon"></div> <!-- 这里没有专门的代码icon，复用 -->
+                <h2>4. 从零手写 Perlin Noise (C#)</h2>
+            </div>
+
+            <p>不满足于只做 API 调用师？我们来深入底层，亲手实现一个 2D 柏林噪声类！</p>
+            <p>这个实现基于 Ken Perlin 的经典算法（改进版）。</p>
+
+            <div class="code-step">
+                <h3>第一步：准备置换表 (Permutation Table)</h3>
+                <p>我们需要一个打乱的 0-255 的数组，用于快速生成伪随机梯度索引。</p>
+                <pre><code class="language-csharp">
+public class MyPerlinNoise
+{
+    // 置换表：0-255 的随机排列，复制一份在后面防止越界
+    // 这里的数字是乱序的 0-255
+    private static readonly int[] permutation = { 
+        151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+        190, 6,148,247,120,234,75, 0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168, 
+        68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+        // ... (篇幅原因省略，完整版应该是 0-255 的乱序数组) ...
+        // 实际上需要一个 512 长度的数组 p[]
+    };
+
+    private static int[] p; // 最终使用的 512 长度数组
+
+    static MyPerlinNoise() {
+        p = new int[512];
+        for (int i = 0; i < 256; i++) p[256 + i] = p[i] = permutation[i];
+    }
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第二步：缓动函数 (Fade Function)</h3>
+                <p>为了让过渡平滑，我们不直接使用线性插值，而是用这个神奇的公式：<code>6t^5 - 15t^4 + 10t^3</code></p>
+                <pre><code class="language-csharp">
+    private static float Fade(float t) {
+        // Ken Perlin 改进后的缓动曲线，二阶导数连续
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第三步：线性插值 (Lerp)</h3>
+                <pre><code class="language-csharp">
+    private static float Lerp(float t, float a, float b) {
+        return a + t * (b - a);
+    }
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第四步：梯度计算 (Grad)</h3>
+                <p>根据哈希值，从几个预设的方向向量中选一个，并计算点积。</p>
+                <pre><code class="language-csharp">
+    private static float Grad(int hash, float x, float y) {
+        // 取 hash 的低 4 位（0-15）
+        int h = hash & 15;
+        
+        // 根据 h 的值，从 8 个方向中选一个梯度向量 (1,1), (-1,1), (0,-1) 等
+        // 并计算该梯度向量与距离向量 (x, y) 的点积
+        // 这里的代码是优化后的位运算版本，等价于 dot(grad, (x,y))
+        float u = h < 8 ? x : y;
+        float v = h < 4 ? y : ((h == 12 || h == 14) ? x : 0);
+        
+        return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    }
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第五步：核心噪声函数 (Noise)</h3>
+                <p>将以上步骤组合起来！</p>
+                <pre><code class="language-csharp">
+    public static float Noise(float x, float y) {
+        // 1. 找到输入点所在的单位方格坐标
+        // & 255 是为了防止溢出并循环利用置换表
+        int X = Mathf.FloorToInt(x) & 255;
+        int Y = Mathf.FloorToInt(y) & 255;
+
+        // 2. 计算点在方格内的相对位置 (0.0 ~ 1.0)
+        x -= Mathf.Floor(x);
+        y -= Mathf.Floor(y);
+
+        // 3. 计算缓动曲线值 (u, v)
+        float u = Fade(x);
+        float v = Fade(y);
+
+        // 4. 哈希查找：找出方格四个顶点的哈希值
+        // A, B 分别代表方格的上下两行索引
+        int A = p[X] + Y;
+        int B = p[X + 1] + Y;
+
+        // 5. 混合：
+        // 先计算四个顶点的梯度点积 (Grad)
+        // 然后在 x 轴上 Lerp (得到两个值)
+        // 最后在 y 轴上 Lerp (得到最终值)
+        
+        float res = Lerp(v, 
+            Lerp(u, Grad(p[A], x, y), Grad(p[B], x - 1, y)),
+            Lerp(u, Grad(p[A + 1], x, y - 1), Grad(p[B + 1], x - 1, y - 1))
+        );
+        
+        // 结果通常在 -1 到 1 之间，映射到 0 到 1
+        return (res + 1.0f) * 0.5f;
+    }
+}
+                </code></pre>
+            </div>
+            
+            <p>现在，你可以在 Unity 中像调用 <code>Mathf.PerlinNoise(x, y)</code> 一样调用 <code>MyPerlinNoise.Noise(x, y)</code> 了！这就是造轮子的乐趣！</p>
+        </div>
+
+        <!-- 5. 避坑指南 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon warning-icon"></div> <!-- 复用warning样式 -->
+                <h2>5. 避坑指南</h2>
+            </div>
+            <ul class="danger-list">
+                <li><strong>整数坐标问题</strong>：如果你传入整数 (1.0, 2.0)，<code>Mathf.PerlinNoise</code> 可能会返回相同的值。<strong>一定要传入小数！</strong></li>
+                <li><strong>对称性</strong>：柏林噪声在某些实现中可能会出现镜像对称，通过添加足够大的随机偏移量 (Offset) 可以避免。</li>
+                <li><strong>范围</strong>：虽然理论上是 0-1，但有时可能会略微超出，如果需要严格范围，记得 <code>Mathf.Clamp</code>。</li>
+            </ul>
+        </div>
+        
+        <!-- 6. 对比总结 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon list-icon"></div> <!-- 复用list样式 -->
+                <h2>6. 什么时候用什么？</h2>
+            </div>
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>算法</th>
+                        <th>特点</th>
+                        <th>适用场景</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Random.Range</strong></td>
+                        <td>完全随机，杂乱</td>
+                        <td>掉落物品、伤害浮动、抽卡</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Perlin Noise</strong></td>
+                        <td>平滑过渡，自然</td>
+                        <td>地形起伏、云朵形状、水面波纹</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Simplex Noise</strong></td>
+                        <td>柏林噪声的升级版</td>
+                        <td>高维计算 (3D/4D)，性能更好 (但在Unity中需第三方库)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>去创造属于你的世界吧！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <!-- 简单的Perlin Noise实现库，用于网页演示 -->
+    <script src="perlin.js"></script> 
+    <script src="script.js"></script>
+</body>
+</html>

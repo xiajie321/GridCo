@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流场寻路算法 (Flow Field) - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="nav-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>流场寻路算法 (Flow Field)</h1>
+            <p class="subtitle">当成千上万个单位要去同一个地方时，A* 也会累垮。是时候让"流场"登场了！</p>
+        </header>
+
+        <div class="pixel-box tutorial-section">
+            <h2>1. 什么是流场？</h2>
+            <p>想象一下水流。水总是往低处流，而且它会推着所有漂浮物一起走。</p>
+            <p><strong>流场寻路</strong>就是制造这样一个"人工水流"。我们计算出地图上<strong>每个格子</strong>应该往哪个方向流才能最快到达终点，然后所有单位只需要顺着这个方向走就行了。</p>
+            <ul>
+                <li><strong>A*</strong>：为<strong>每一个单位</strong>计算一条专属路线。（好比每人一辆出租车，贵且堵）</li>
+                <li><strong>流场</strong>：计算一张<strong>全局地图</strong>，所有单位共享。（好比修了一条通往市中心的高速公路，大家一起开）</li>
+            </ul>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>2. 交互体验：指挥千军万马</h2>
+            <p><strong>操作说明：</strong></p>
+            <ul>
+                <li><strong>设置障碍</strong>：点击或拖动来画墙。</li>
+                <li><strong>移动终点</strong>：改变大家要去的地方。</li>
+                <li><strong>生成单位</strong>：点击空白处生成小球，或者点击"批量生成"。</li>
+                <li><strong>观察</strong>：尝试开启/关闭"热力图"和"流向箭头"来理解原理。</li>
+            </ul>
+
+            <div class="demo-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>操作模式:</label>
+                        <button id="btn-mode-wall" class="pixel-btn mode active">画墙</button>
+                        <button id="btn-mode-target" class="pixel-btn mode">移动终点</button>
+                        <button id="btn-mode-spawn" class="pixel-btn mode">生成单位</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <button id="btn-spawn-batch" class="pixel-btn action">批量生成50个</button>
+                        <button id="btn-clear-walls" class="pixel-btn danger">清除障碍</button>
+                    </div>
+
+                    <div class="view-toggles">
+                        <label><input type="checkbox" id="chk-heat" checked> 显示热力图</label>
+                        <label><input type="checkbox" id="chk-flow" checked> 显示箭头</label>
+                    </div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="flow-canvas"></canvas>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-box" style="background:#F44336; border-radius:50%;"></div>终点</div>
+                    <div class="legend-item"><div class="legend-box" style="background:#333;"></div>障碍</div>
+                    <div class="legend-item"><div class="legend-box" style="background:rgb(0, 255, 100);"></div>近</div>
+                    <div class="legend-item"><div class="legend-box" style="background:rgb(255, 0, 100);"></div>远</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>3. 三步走：流场是如何生成的？</h2>
+            
+            <div class="step-card">
+                <h3>第一步：代价场 (Cost Field)</h3>
+                <p>标记地图上每个格子的通过难度。墙壁是 255 (不可通过)，平地是 1。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>第二步：积分场 (Integration Field) / 热力图</h3>
+                <p>从<strong>终点</strong>开始，向四面八方扩散（就像 Dijkstra 算法），计算每个格子到终点的"实际距离"。</p>
+                <p><em>看上面的演示：离红点越近越绿，越远越红，遇到墙壁会绕开计算距离。</em></p>
+            </div>
+
+            <div class="step-card">
+                <h3>第三步：流场 / 向量场 (Vector Field)</h3>
+                <p>每个格子问它的邻居："嘿，你们谁离终点最近（积分最小）？"</p>
+                <p>然后它就生成一个指向那个邻居的箭头。这就是单位该走的方向。</p>
+                <p><em>看上面的演示：黑色箭头就是这样生成的。</em></p>
+            </div>
+        </div>
+        
+        <div class="pixel-box tutorial-section">
+            <h2>4. 性能大比拼：A* vs 流场</h2>
+            <table border="1" style="width:100%; border-collapse: collapse; text-align: center;">
+                <tr style="background:#ddd;">
+                    <th>特性</th>
+                    <th>A* (A-Star)</th>
+                    <th>流场 (Flow Field)</th>
+                </tr>
+                <tr>
+                    <td><strong>适用场景</strong></td>
+                    <td>少量单位，复杂路径</td>
+                    <td><strong>海量单位</strong>，统一目标</td>
+                </tr>
+                <tr>
+                    <td><strong>计算量</strong></td>
+                    <td>随单位数量增加而线性增加</td>
+                    <td><strong>恒定</strong> (只算一次地图，与单位数无关)</td>
+                </tr>
+                <tr>
+                    <td><strong>内存</strong></td>
+                    <td>较低</td>
+                    <td>较高 (需要存储整个网格数据)</td>
+                </tr>
+                <tr>
+                    <td><strong>动态障碍</strong></td>
+                    <td>每次受阻都要重新寻路</td>
+                    <td>局部更新流场即可，所有单位自动避让</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>5. C# 代码核心逻辑</h2>
+            <pre><code class="language-csharp">
+public void GenerateFlowField()
+{
+    // 1. 生成积分场 (Dijkstra)
+    // integrationField 初始化为 int.MaxValue，终点为 0
+    Queue<Vector2Int> queue = new Queue<Vector2Int>();
+    queue.Enqueue(targetPos);
+
+    while (queue.Count > 0)
+    {
+        Vector2Int current = queue.Dequeue();
+        foreach (var neighbor in GetNeighbors(current))
+        {
+            if (costField[neighbor] == 255) continue; // 撞墙
+
+            int newCost = integrationField[current] + costField[neighbor];
+            if (newCost < integrationField[neighbor])
+            {
+                integrationField[neighbor] = newCost;
+                queue.Enqueue(neighbor);
+            }
+        }
+    }
+
+    // 2. 生成流场向量
+    foreach (var cell in allCells)
+    {
+        if (costField[cell] == 255) continue;
+
+        int bestDist = integrationField[cell];
+        Vector2Int bestDir = Vector2Int.zero;
+
+        // 找积分最小的邻居
+        foreach (var neighbor in GetNeighbors(cell))
+        {
+            if (integrationField[neighbor] < bestDist)
+            {
+                bestDist = integrationField[neighbor];
+                bestDir = neighbor - cell; // 指向邻居
+            }
+        }
+        flowField[cell] = bestDir;
+    }
+}
+            </code></pre>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>就像指挥千军万马，你不需要告诉每个士兵怎么走，只需要给他们指明大方向！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

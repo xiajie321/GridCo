@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区块加载算法 (Chunk Loading) - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="nav-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>区块加载算法</h1>
+            <p class="subtitle">让无尽世界成为可能！像《我的世界》那样的地图加载技术。</p>
+        </header>
+
+        <div class="pixel-box tutorial-section">
+            <h2>1. 什么是区块加载？</h2>
+            <p>想象你在读一本书。你不可能一次把整本书的内容都印在视网膜上，对吧？</p>
+            <p><strong>你只会看当前那一页</strong>。当你翻页时，你的大脑加载新的一页，并稍微忘记前一页的细节。</p>
+            <p>在游戏中也是一样：</p>
+            <ul>
+                <li><strong>整个世界太大</strong>，如果全部加载到内存里，电脑会直接卡死。</li>
+                <li><strong>我们把世界切成小块</strong>，这些小块就叫<strong>"区块 (Chunks)"</strong>。</li>
+                <li><strong>只加载玩家附近的区块</strong>，玩家走到哪，区块就加载到哪。</li>
+                <li><strong>卸载远处的区块</strong>，离得太远看不见，就把它们从内存里删掉，节省空间。</li>
+            </ul>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>2. 核心概念：以玩家为中心的加载</h2>
+            <p>想象你是一个拿着蜡烛在黑暗中行走的人。光圈范围内的东西是可见的（已加载），光圈外是一片漆黑（未加载）。</p>
+            <div class="step-card">
+                <h3>关键规则：</h3>
+                <ol>
+                    <li>玩家每移动一步，都需要检查周围。</li>
+                    <li>如果有新区块进入"视线范围"，<strong>加载它</strong>。</li>
+                    <li>如果有老区块离开"视线范围"，<strong>卸载它</strong>。</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>3. 交互体验：亲自试一试！</h2>
+            <p><strong>操作说明：</strong> 点击网格中的任何位置来移动红色的玩家。观察绿色区块（已加载）是如何跟随玩家移动的。</p>
+            <p>你可以调整"视野距离"来看看不同配置下的效果。</p>
+            
+            <div class="controls">
+                <label>视野距离: <span id="render-dist-val">2</span></label>
+                <input type="range" id="render-dist" min="1" max="4" value="2">
+                <button id="btn-reset" class="pixel-btn reset-btn">重置位置</button>
+            </div>
+            
+            <div class="demo-container">
+                <div id="chunk-grid" class="chunk-grid">
+                    <!-- 网格将通过 JS 生成 -->
+                </div>
+                <div class="stat-panel">
+                    <div>当前玩家坐标: <span id="player-pos">7, 7</span></div>
+                    <div>已加载区块数: <span id="loaded-count">0</span></div>
+                    <div>状态: <span id="status-text">就绪</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>4. 效果对比：普通加载 vs 区块加载</h2>
+            <div class="comparison-container">
+                <div class="comparison-box">
+                    <h3>普通方法 (一次性加载)</h3>
+                    <p>一开始就加载整个世界。</p>
+                    <div id="normal-loading-demo" class="small-grid"></div>
+                    <p style="color: red;">缺点：启动慢，内存爆炸，世界不能太大。</p>
+                    <button id="btn-demo-normal" class="pixel-btn sm-btn">演示加载</button>
+                </div>
+                <div class="comparison-box">
+                    <h3>区块加载 (按需加载)</h3>
+                    <p>只加载眼前的一点点。</p>
+                    <div id="chunk-loading-demo" class="small-grid"></div>
+                    <p style="color: green;">优点：启动快，内存占用小，世界可以无限大。</p>
+                    <button id="btn-demo-chunk" class="pixel-btn sm-btn">演示加载</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>5. C# 代码实现 (Unity 风格)</h2>
+            <p>这是核心逻辑的 C# 代码。它使用一个字典来跟踪哪些区块已经加载。</p>
+            <pre><code class="language-csharp">
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ChunkLoader : MonoBehaviour
+{
+    public Transform player;
+    public int renderDistance = 2; // 视野距离
+    public int chunkSize = 16;     // 区块大小
+
+    // 使用字典来存储已加载的区块，Key是坐标，Value是区块对象
+    private Dictionary<Vector2Int, GameObject> loadedChunks = new Dictionary<Vector2Int, GameObject>();
+
+    void Update()
+    {
+        // 1. 获取玩家所在的区块坐标
+        Vector2Int playerChunkCoord = GetChunkCoord(player.position);
+
+        // 2. 遍历视野范围内的所有坐标
+        for (int x = -renderDistance; x <= renderDistance; x++)
+        {
+            for (int y = -renderDistance; y <= renderDistance; y++)
+            {
+                Vector2Int offset = new Vector2Int(x, y);
+                Vector2Int checkCoord = playerChunkCoord + offset;
+
+                // 3. 如果这个坐标还没有加载区块，加载它！
+                if (!loadedChunks.ContainsKey(checkCoord))
+                {
+                    LoadChunk(checkCoord);
+                }
+            }
+        }
+
+        // 4. 检查是否有区块太远了，需要卸载
+        // (为了简单，这里用一个新的列表来存需要删除的key)
+        List<Vector2Int> chunksToRemove = new List<Vector2Int>();
+        
+        foreach (var coord in loadedChunks.Keys)
+        {
+            if (Vector2Int.Distance(coord, playerChunkCoord) > renderDistance)
+            {
+                chunksToRemove.Add(coord);
+            }
+        }
+
+        // 执行卸载
+        foreach (var coord in chunksToRemove)
+        {
+            UnloadChunk(coord);
+        }
+    }
+
+    // 辅助函数：把世界坐标转为区块坐标
+    Vector2Int GetChunkCoord(Vector3 pos)
+    {
+        int x = Mathf.FloorToInt(pos.x / chunkSize);
+        int z = Mathf.FloorToInt(pos.z / chunkSize);
+        return new Vector2Int(x, z);
+    }
+
+    void LoadChunk(Vector2Int coord)
+    {
+        // 实例化区块预制体...
+        GameObject chunk = Instantiate(chunkPrefab, ...);
+        loadedChunks.Add(coord, chunk);
+    }
+
+    void UnloadChunk(Vector2Int coord)
+    {
+        // 销毁游戏对象并从字典移除
+        Destroy(loadedChunks[coord]);
+        loadedChunks.Remove(coord);
+    }
+}
+            </code></pre>
+        </div>
+        
+        <div class="pixel-box tutorial-section" style="background-color: #fff3cd;">
+            <h3>🔍 进阶思考</h3>
+            <p>在实际的大型游戏（如 Minecraft）中，我们通常不会在主线程直接加载区块，因为这会卡顿。我们会使用<strong>异步加载</strong>或<strong>多线程</strong>，或者使用<strong>对象池</strong>来复用区块，而不是反复创建和销毁。</p>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

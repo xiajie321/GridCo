@@ -1,0 +1,218 @@
+.tutorial-section {
+    margin-bottom: 30px;
+}
+
+/* 导航按钮样式 - 保持一致性 */
+.nav-btn {
+    font-family: 'ZCOOL KuaiLe', cursive;
+    background-color: #FF6B6B;
+    color: white;
+    border: 3px solid #000;
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.nav-btn:hover {
+    background-color: #FF5252;
+}
+
+.nav-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.step-card {
+    background: #f8f9fa;
+    border-left: 5px solid var(--accent-color);
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+}
+
+.step-card h3 {
+    margin-top: 0;
+    color: var(--accent-color);
+}
+
+/* 演示网格容器 */
+.demo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: #e0f7fa;
+    border-radius: 8px;
+    border: 2px solid #000;
+}
+
+/* 交互网格 */
+.chunk-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    gap: 2px;
+    background-color: #ccc;
+    padding: 5px;
+    border: 4px solid #333;
+    position: relative;
+    user-select: none;
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    color: #aaa;
+    transition: all 0.3s ease;
+}
+
+/* 状态样式 */
+.cell.player {
+    background-color: #FF5252 !important; /* 强制覆盖其他颜色 */
+    color: white;
+    font-weight: bold;
+    z-index: 10;
+    border-radius: 50%;
+    transform: scale(0.8);
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.8);
+}
+
+.cell.loaded {
+    background-color: #4CAF50; /* 绿色已加载 */
+    border: 1px solid #2E7D32;
+    color: #fff;
+}
+
+.cell.loading {
+    background-color: #FFD740; /* 黄色加载中 */
+    animation: pulse 1s infinite;
+}
+
+.cell.unloading {
+    background-color: #9E9E9E; /* 灰色卸载中 */
+    opacity: 0.5;
+}
+
+/* 坐标显示 */
+.coord-display {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(255,255,255,0.8);
+    padding: 2px 5px;
+    font-size: 12px;
+    border: 1px solid #000;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* 控制面板 */
+.controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.pixel-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: 2px solid #000;
+    padding: 8px 16px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.pixel-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 #000;
+}
+
+.pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+.pixel-btn.secondary {
+    background-color: #2196F3;
+}
+
+/* 对比部分 */
+.comparison-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-around;
+}
+
+.comparison-box {
+    flex: 1;
+    min-width: 300px;
+    background: #fff;
+    border: 2px solid #000;
+    padding: 15px;
+    text-align: center;
+}
+
+.small-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 20px);
+    grid-template-rows: repeat(10, 20px);
+    gap: 1px;
+    margin: 10px auto;
+    background: #eee;
+    border: 2px solid #555;
+    justify-content: center;
+}
+
+.small-cell {
+    width: 20px;
+    height: 20px;
+    background: #fff;
+}
+
+.stat-panel {
+    margin-top: 10px;
+    font-family: monospace;
+    text-align: left;
+    background: #333;
+    color: #0f0;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* 距离环样式 */
+.cell.ring-1 { opacity: 0.9; }
+.cell.ring-2 { opacity: 0.8; }
+.cell.ring-3 { opacity: 0.7; }
+
+/* 代码块样式微调 */
+pre {
+    background: #282c34;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    border: 2px solid #000;
+}
+
+code {
+    font-family: 'Consolas', 'Monaco', monospace;
+}

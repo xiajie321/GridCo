@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity Job System 深度解析 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>Unity Job System 全解</h1>
+            <p class="subtitle">释放多核 CPU 的潜能，让游戏飞起来！</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon cpu-icon"></div>
+                <h2>1. 为什么要用 Job System?</h2>
+            </div>
+            <p>想象你在经营一家餐厅（你的游戏）。</p>
+            <div class="concept-comparison">
+                <div class="concept-card">
+                    <h3>单线程 (主线程)</h3>
+                    <p>你只有一个大厨（CPU 主核）。他要负责切菜、炒菜、摆盘、洗碗。不管客人多少，他只能一件一件做。</p>
+                    <div class="visual-demo" id="demo-single-thread">
+                        <!-- JS 动态生成动画 -->
+                        <div class="chef-main">主厨</div>
+                        <div class="queue">等待的任务...</div>
+                    </div>
+                    <p class="warn-text">结果：客人多了就卡顿（帧率下降）。</p>
+                </div>
+                <div class="concept-card highlight">
+                    <h3>Job System (多线程)</h3>
+                    <p>你雇佣了一群帮厨（工作线程）。主厨只负责指挥和最后把关，切菜洗碗这种繁重且重复的活儿分给帮厨们同时干。</p>
+                    <div class="visual-demo" id="demo-job-system">
+                        <!-- JS 动态生成动画 -->
+                        <div class="chef-main">主厨 (指挥)</div>
+                        <div class="workers-container">
+                            <div class="worker">帮厨 A</div>
+                            <div class="worker">帮厨 B</div>
+                            <div class="worker">帮厨 C</div>
+                        </div>
+                    </div>
+                    <p class="success-text">结果：效率翻倍，丝般顺滑。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 核心原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon gear-icon"></div>
+                <h2>2. 核心概念与原理</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>什么是 Job?</h3>
+                <p>一个 Job 就是一个具体的任务结构体（struct）。它包含了执行这个任务所需的数据和逻辑。比如："把这 100 个数字都加 1"。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>NativeContainer (原生容器)</h3>
+                <p>普通的 C# 数组（Array, List）是托管对象，Job 在后台线程跑，为了安全，Unity 不让 Job 直接访问这些主线程的内存。</p>
+                <p>所以我们需要 <strong>NativeArray</strong>。它是一块直接在内存中分配的区域，主线程和 Job 线程都能安全地访问它。</p>
+                <ul class="note-list">
+                    <li><strong>NativeArray<T></strong>: 最常用的数组。</li>
+                    <li><strong>注意</strong>: 用完必须手动释放（Dispose），否则内存泄漏！</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <h3>Burst Compiler (爆裂编译器)</h3>
+                <p>Job System 的好搭档。它能把你的 C# Job 代码编译成极致优化的机器码。通常与 Job System 一起使用，性能提升可达 10 倍以上！</p>
+            </div>
+        </div>
+
+        <!-- 3. 互动演示：性能对比 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon chart-icon"></div>
+                <h2>3. 互动演示：单线程 vs Job System</h2>
+            </div>
+            <p><strong>任务：</strong> 计算 5000 个单位的复杂移动逻辑。</p>
+            
+            <div class="demo-container">
+                <div class="controls">
+                    <button id="btn-run-main" class="pixel-btn">运行单线程模式</button>
+                    <button id="btn-run-job" class="pixel-btn action">运行 Job System 模式</button>
+                    <div class="stats-display">
+                        耗时: <span id="time-display">0</span> ms
+                    </div>
+                </div>
+
+                <div class="visualizer">
+                    <div class="thread-track" id="track-main">
+                        <span class="track-label">主线程</span>
+                        <div class="progress-bar"><div class="fill"></div></div>
+                    </div>
+                    <div class="thread-track-group" id="track-workers">
+                        <span class="track-label">工作线程池</span>
+                        <div class="worker-track"><div class="fill"></div></div>
+                        <div class="worker-track"><div class="fill"></div></div>
+                        <div class="worker-track"><div class="fill"></div></div>
+                        <div class="worker-track"><div class="fill"></div></div>
+                    </div>
+                </div>
+
+                <canvas id="simulation-canvas" width="600" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon code-icon"></div>
+                <h2>4. 保姆级代码教学</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>第一步：引用命名空间</h3>
+                <pre><code class="language-csharp">using Unity.Jobs;
+using Unity.Collections;
+using Unity.Burst; // 记得安装 Burst 包</code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第二步：定义 Job</h3>
+                <p>我们要实现 <code>IJob</code> (单任务) 或 <code>IJobParallelFor</code> (并行循环任务)。</p>
+                <pre><code class="language-csharp">[BurstCompile] // 加上这个特性，开启性能外挂
+public struct MovementJob : IJobParallelFor
+{
+    // 输入数据（只读）
+    [ReadOnly] public NativeArray<float3> positions;
+    [ReadOnly] public NativeArray<float3> velocities;
+    public float deltaTime;
+
+    // 输出数据（读写）
+    public NativeArray<float3> resultPositions;
+
+    // 具体的干活逻辑
+    public void Execute(int index)
+    {
+        // index 是当前处理的第几个元素
+        // 这里的代码会在多个线程上并行执行
+        resultPositions[index] = positions[index] + velocities[index] * deltaTime;
+        
+        // 模拟复杂计算
+        float heavyMath = math.sin(index) * math.cos(index); 
+    }
+}</code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>第三步：在主线程调度 (Schedule)</h3>
+                <pre><code class="language-csharp">void Update() {
+    // 1. 准备数据 (分配原生内存)
+    // Allocator.TempJob 表示这内存只存活一帧左右
+    NativeArray<float3> positions = new NativeArray<float3>(1000, Allocator.TempJob);
+    NativeArray<float3> velocities = new NativeArray<float3>(1000, Allocator.TempJob);
+    NativeArray<float3> results = new NativeArray<float3>(1000, Allocator.TempJob);
+
+    // ... 假设这里填充了数据 ...
+
+    // 2. 创建 Job 实例
+    MovementJob jobData = new MovementJob();
+    jobData.positions = positions;
+    jobData.velocities = velocities;
+    jobData.deltaTime = Time.deltaTime;
+    jobData.resultPositions = results;
+
+    // 3. 调度 Job
+    // 参数1: 循环次数, 参数2: 批处理大小 (Batch Size)
+    // 这里的 Handle 就像是这个任务的"收据"
+    JobHandle handle = jobData.Schedule(results.Length, 64);
+
+    // 4. 等待完成 (Complete)
+    // 注意：通常我们不会马上 Complete，而是等到帧末尾，利用这段时间做别的事
+    handle.Complete(); 
+
+    // 5. 使用结果 & 释放内存
+    // 把 NativeArray 的数据复制回普通数组或直接使用
+    // ...
+    
+    // 极其重要：用完必须释放！
+    positions.Dispose();
+    velocities.Dispose();
+    results.Dispose();
+}</code></pre>
+            </div>
+        </div>
+
+        <!-- 5. 注意事项与坑 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon warning-icon"></div>
+                <h2>5. 避坑指南 (注意事项)</h2>
+            </div>
+            <ul class="danger-list">
+                <li><strong>不要访问引用类型</strong>：Job 里不能用 class（类），只能用 struct（结构体）和 blittable types（基础类型）。不能在 Job 里访问 <code>Transform</code> 或 <code>GameObject</code>！</li>
+                <li><strong>内存泄漏警告</strong>：<code>NativeArray</code> 必须 <code>Dispose</code>。如果不释放，Unity 会报错，内存会爆炸。</li>
+                <li><strong>Race Condition (竞争条件)</strong>：如果多个线程同时写入同一个位置，数据会乱。<code>IJobParallelFor</code> 通过 <code>index</code> 隔离避免了这个问题，但在同一个 index 内要小心。</li>
+                <li><strong>主线程阻塞</strong>：调用 <code>Complete()</code> 会让主线程停下来等 Job 做完。最好的做法是：在一帧开始时 Schedule，在一帧结束时 Complete。</li>
+            </ul>
+        </div>
+        
+        <!-- 6. 对比总结 (响应用户要求的对比) -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon list-icon"></div>
+                <h2>6. 什么时候该用什么？</h2>
+            </div>
+            <table class="pixel-table">
+                <thead>
+                    <tr>
+                        <th>场景</th>
+                        <th>推荐方法</th>
+                        <th>原因</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>几百个物体的移动</td>
+                        <td>Update()</td>
+                        <td>简单直接，没必要引入 Job 的开销。</td>
+                    </tr>
+                    <tr>
+                        <td>海量单位 (1000+)</td>
+                        <td><strong>Job System</strong></td>
+                        <td>并行处理优势巨大，节省主线程时间。</td>
+                    </tr>
+                    <tr>
+                        <td>复杂寻路 (A*)</td>
+                        <td><strong>Job System</strong></td>
+                        <td>寻路计算量大，放入后台线程可以避免卡顿。</td>
+                    </tr>
+                    <tr>
+                        <td>UI 逻辑</td>
+                        <td>主线程</td>
+                        <td>UI 只能在主线程操作。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>掌握 Job System，成为性能优化大师！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>

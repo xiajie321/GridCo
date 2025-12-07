@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>波函数坍缩 (WFC) 原理 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="nav-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>波函数坍缩 (WFC)</h1>
+            <p class="subtitle">像魔法一样自动生成地图！从量子力学借来的超酷算法。</p>
+        </header>
+
+        <div class="pixel-box tutorial-section">
+            <h2>1. 什么是波函数坍缩？</h2>
+            <p>名字听起来很吓人（来自量子力学），但原理其实超级简单！</p>
+            <p>想象你在玩<strong>数独</strong>或者是<strong>拼图</strong>：</p>
+            <ul>
+                <li>你不能随便乱填，必须遵守<strong>规则</strong>（比如相邻的拼图缺口必须匹配）。</li>
+                <li>一开始，每个格子里都<strong>可能</strong>是任何拼图块（这就是<strong>叠加态</strong>）。</li>
+                <li>当你确定了一个格子的内容（<strong>坍缩</strong>），它的邻居的选择就变少了（<strong>传播</strong>）。</li>
+                <li>不断重复，直到所有格子都填满！</li>
+            </ul>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>2. 核心概念演示：地形拼接</h2>
+            <p>让我们用三种简单的地形来演示：<span style="color:#4CAF50">草地</span>、<span style="color:#2196F3">海岸</span>、<span style="color:#0D47A1">海洋</span>。</p>
+            <div class="rules-display">
+                <p><strong>我们的规则：</strong></p>
+                <div class="rule-item"><span class="tile land">草地</span> 可以挨着 <span class="tile land">草地</span> 或 <span class="tile coast">海岸</span></div>
+                <div class="rule-item"><span class="tile coast">海岸</span> 可以挨着 <span class="tile land">草地</span> 或 <span class="tile sea">海洋</span></div>
+                <div class="rule-item"><span class="tile sea">海洋</span> 只能挨着 <span class="tile coast">海岸</span> 或 <span class="tile sea">海洋</span></div>
+                <p><em>简单来说：草地不能直接挨着深海！</em></p>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>3. 交互体验：亲自试一试！</h2>
+            <p>下面是一个未观测的网格。每个格子里现在都包含<strong>所有可能性</strong>。</p>
+            <div class="controls">
+                <button id="btn-collapse-random" class="pixel-btn">随机观测一个格子</button>
+                <button id="btn-auto-run" class="pixel-btn action-btn">自动快速生成</button>
+                <button id="btn-reset" class="pixel-btn reset-btn">重置</button>
+            </div>
+            
+            <div id="wfc-grid" class="wfc-grid">
+                <!-- 网格将通过 JS 生成 -->
+            </div>
+            
+            <div id="status-log" class="status-log">
+                点击"随机观测"开始...
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>4. 步骤详解</h2>
+            <div class="step-card">
+                <h3>第一步：计算熵 (Entropy)</h3>
+                <p>我们会找到那个<strong>"最容易出错"</strong>或者<strong>"选择最少"</strong>的格子。这个选择数量就叫<strong>熵</strong>。</p>
+                <p>比如：A格子有3种可能，B格子只剩2种可能。我们会优先处理B，因为它更紧迫！</p>
+            </div>
+            <div class="step-card">
+                <h3>第二步：观测 (Collapse)</h3>
+                <p>从可能性中随机选一个作为最终结果。就像扔骰子决定它是草地还是海洋。</p>
+            </div>
+            <div class="step-card">
+                <h3>第三步：传播 (Propagate)</h3>
+                <p>一旦B变成了草地，它的邻居就不可能是海洋了！我们需要把这个信息传递给邻居，邻居再传递给邻居...直到没有矛盾为止。</p>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>5. 效果对比：纯随机 vs WFC</h2>
+            <div class="comparison-container">
+                <div class="comparison-box">
+                    <h3>纯随机生成</h3>
+                    <div id="random-grid" class="small-grid"></div>
+                    <p>杂乱无章，草地旁边直接是深海，完全不自然。</p>
+                    <button id="btn-gen-random" class="pixel-btn sm-btn">生成随机</button>
+                </div>
+                <div class="comparison-box">
+                    <h3>WFC 算法</h3>
+                    <div id="wfc-small-grid" class="small-grid"></div>
+                    <p>井井有条，地形过渡自然，符合我们定义的规则。</p>
+                    <button id="btn-gen-wfc" class="pixel-btn sm-btn">生成 WFC</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-box tutorial-section">
+            <h2>6. C# 代码实现</h2>
+            <p>这是 WFC 核心逻辑的简化版 C# 代码。重点看 <code>Propagate</code> 方法。</p>
+            <pre><code class="language-csharp">
+public class WaveFunctionCollapse
+{
+    // 定义单元格状态
+    public class Cell
+    {
+        public bool Collapsed = false;
+        public List<TileType> Options; // 当前可能的选项（叠加态）
+    }
+
+    // 核心方法：传播约束
+    public void Propagate(int x, int y)
+    {
+        Stack<Vector2Int> stack = new Stack<Vector2Int>();
+        stack.Push(new Vector2Int(x, y));
+
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            var curCell = grid[current.x, current.y];
+
+            // 检查上下左右四个邻居
+            foreach (var neighborPos in GetNeighbors(current))
+            {
+                var neighbor = grid[neighborPos.x, neighborPos.y];
+                
+                // 如果邻居已经被完全确定了，就跳过
+                if (neighbor.Collapsed) continue;
+
+                // 检查邻居的每个选项，是否与当前格子的"任何"可能选项兼容
+                // 如果不兼容，就从邻居的选项中移除它
+                bool changed = false;
+                for (int i = neighbor.Options.Count - 1; i >= 0; i--)
+                {
+                    if (!IsCompatible(curCell.Options, neighbor.Options[i]))
+                    {
+                        neighbor.Options.RemoveAt(i);
+                        changed = true;
+                    }
+                }
+
+                // 如果邻居的可能性变少了，它可能会影响它的邻居，所以入栈继续检查
+                if (changed)
+                {
+                    stack.Push(neighborPos);
+                }
+            }
+        }
+    }
+}
+            </code></pre>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>
