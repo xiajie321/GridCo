@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分帧计算 (Time Slicing) 详解 - 互动教程</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html" class="pixel-btn">← 返回目录</a>
+        </div>
+
+        <header class="pixel-box header">
+            <h1>分帧计算 (Time Slicing)</h1>
+            <p class="subtitle">别让游戏卡死！学会把大西瓜切成小块吃</p>
+        </header>
+
+        <!-- 1. 概念引入 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon clock-icon"></div>
+                <h2>1. 核心痛点：主线程卡死</h2>
+            </div>
+            <p>游戏通常要求 60 FPS，意味着每一帧只有 <strong>16.6 毫秒</strong>。</p>
+            <p>如果你有一个任务（比如加载 10000 个敌人）需要执行 100 毫秒：</p>
+            <ul>
+                <li style="color:var(--lag-color)">❌ <strong>一帧干完：</strong> 这一帧耗时 100ms，游戏画面卡住，掉到 10 FPS。</li>
+                <li style="color:var(--smooth-color)">✅ <strong>分帧执行：</strong> 每帧只做 2ms 的工作，分 50 帧做完。游戏全程保持 60 FPS，丝般顺滑。</li>
+            </ul>
+        </div>
+
+        <!-- 2. 互动演示 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon clock-icon"></div>
+                <h2>2. 性能实验室</h2>
+            </div>
+            <p>观察左边的旋转方块。如果它卡住了，说明主线程被阻塞了。</p>
+            
+            <div class="demo-container">
+                <div class="spinner-container">
+                    <div id="spinner" class="spinner"></div>
+                    <div class="fps-counter" id="fps-display">FPS: 60</div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                
+                <div class="controls">
+                    <button class="pixel-btn" id="btn-heavy">一键执行 (卡顿)</button>
+                    <button class="pixel-btn" id="btn-sliced">分帧执行 (流畅)</button>
+                </div>
+                
+                <div class="note-box" id="status-text">
+                    准备就绪
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 实现原理 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon clock-icon"></div>
+                <h2>3. 实现技巧</h2>
+            </div>
+            
+            <div class="step-card">
+                <h3>协程 (Coroutine)</h3>
+                <p>Unity 中最简单的分帧方式。利用 <code>yield return null</code> 暂停执行，下一帧继续。</p>
+            </div>
+
+            <div class="step-card">
+                <h3>时间预算 (Time Budget)</h3>
+                <p>高级技巧。每一帧开始时启动一个计时器。在循环中不断检查：</p>
+                <p><code>如果 (已用时间 > 3ms) { 暂停，等下一帧; }</code></p>
+                <p>这样能充分利用机器性能，又不至于卡顿。</p>
+            </div>
+        </div>
+
+        <!-- 4. 代码实战 -->
+        <div class="pixel-box tutorial-section">
+            <div class="icon-header">
+                <div class="pixel-icon clock-icon"></div>
+                <h2>4. C# 代码实战 (Unity)</h2>
+            </div>
+
+            <div class="code-step">
+                <h3>基础分帧 (固定数量)</h3>
+                <pre><code class="language-csharp">
+IEnumerator SpawnEnemies() {
+    for (int i = 0; i < 10000; i++) {
+        SpawnEnemy();
+        
+        // 每生成 100 个就休息一下，让出主线程
+        if (i % 100 == 0) {
+            yield return null; // 等待下一帧
+        }
+    }
+}
+                </code></pre>
+            </div>
+
+            <div class="code-step">
+                <h3>高级分帧 (时间预算)</h3>
+                <pre><code class="language-csharp">
+IEnumerator SpawnEnemiesSmart() {
+    Stopwatch stopwatch = new Stopwatch();
+    
+    for (int i = 0; i < 10000; i++) {
+        // 每帧开始时重置计时器
+        if (!stopwatch.IsRunning) stopwatch.Restart();
+        
+        SpawnEnemy();
+        
+        // 如果这一帧用了超过 5 毫秒，就暂停
+        if (stopwatch.ElapsedMilliseconds > 5) {
+            stopwatch.Reset(); // 停止计时
+            yield return null; // 等下一帧
+        }
+    }
+}
+                </code></pre>
+            </div>
+        </div>
+
+        <footer class="pixel-box" style="text-align: center; margin-top: 20px;">
+            <p>即使是加载场景、寻路计算、生成网格，都可以分帧处理！</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script src="script.js"></script>
+</body>
+</html>
