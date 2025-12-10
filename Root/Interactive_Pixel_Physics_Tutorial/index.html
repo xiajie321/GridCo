@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noita 风格像素物理模拟 - 互动教程</title>
+    <style>
+        :root {
+            --primary-color: #ffd700; /* Yellow */
+            --background-color: #87CEEB; /* Sky Blue */
+            --text-color: #333;
+            --code-bg: #f5f5f5;
+            --card-shadow: 4px 4px 0px #000;
+            --border: 3px solid #000;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            font-weight: bold;
+            color: #000;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            border: var(--border);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .card {
+            background-color: #fff;
+            border: var(--border);
+            box-shadow: var(--card-shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .card h2 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #ff6b6b;
+            color: #fff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border: var(--border);
+            box-shadow: 4px 4px 0px #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            background-color: #eee;
+            border: 2px dashed #aaa;
+            padding: 10px;
+        }
+
+        canvas {
+            border: 1px solid #000;
+            background-color: white;
+            image-rendering: pixelated; /* Crucial for pixel art style */
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        code {
+            background-color: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+        }
+
+        pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #000;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px;
+            border-radius: 2px;
+        }
+        
+        /* Module specific styles */
+        .info-panel {
+            margin-top: 10px;
+            font-family: monospace;
+            background: #eee;
+            padding: 5px;
+            border: 1px solid #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="#" class="btn">← 返回目录</a>
+    </div>
+
+    <div class="header">
+        <h1>Noita 风格像素物理模拟</h1>
+        <p>探索可破坏像素世界的奥秘</p>
+    </div>
+
+    <!-- 模块一：世界的本质 -->
+    <div class="card" id="module1">
+        <h2>1. 世界的本质（网格与纹理）</h2>
+        <p>在像素物理世界中，图像不仅仅是用来“看”的，它就是物理世界本身。我们使用一张纹理（Texture）来代表整个世界，其中的每一个像素（Pixel）都对应着一个数据节点（Node）。</p>
+        
+        <p>核心概念：<strong>所见即数据</strong>。</p>
+
+        <div class="canvas-container">
+            <canvas id="canvas1" width="300" height="200"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label><input type="checkbox" id="toggleGrid"> 显示网格/数据视图</label>
+            </div>
+            <div class="info-panel" id="pixelInfo">
+                悬停查看像素信息...
+            </div>
+        </div>
+
+        <h3>代码原理</h3>
+        <p>在 Unity C# 中，我们这样定义世界：</p>
+        <pre><code>// Node.cs
+public class Node {
+    public int x;
+    public int y;
+    public bool isEmpty; // 是否为空（空气）
+}
+
+// GameManager.cs - CreateLevel
+Color color = levelTexture.GetPixel(x, y);
+if (color.a == 0) {
+    node.isEmpty = true;
+}</code></pre>
+
+    </div>
+
+    <!-- 模块二：破坏与创造 -->
+    <div class="card" id="module2">
+        <h2>2. 破坏与创造（动态地形）</h2>
+        <p>当我们在游戏中“挖洞”时，实际上是在修改底层的数据。我们将特定半径内的像素标记为“空”，并将它们的颜色设置为透明。</p>
+
+        <div class="canvas-container">
+            <canvas id="canvas2" width="300" height="200"></canvas>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="toolBrush" style="background-color: #4CAF50;">画笔 (创造)</button>
+            <button class="btn" id="toolEraser" style="background-color: #f44336;">橡皮擦 (破坏)</button>
+            <input type="range" id="brushSize" min="1" max="20" value="5"> <span id="brushSizeVal">5px</span>
+        </div>
+
+        <h3>核心逻辑</h3>
+        <p>Unity 中的实现 (<code>GameManager.cs</code>):</p>
+        <pre><code>// 破坏逻辑
+for (int x = -r; x <= r; x++) {
+    for (int y = -r; y <= r; y++) {
+        // 更新数据
+        node.isEmpty = true; 
+        // 更新视觉
+        levelTexture.SetPixel(node.x, node.y, Color.clear);
+    }
+}
+        levelTexture.Apply(); // 提交更改</code></pre>
+    </div>
+
+    <!-- 模块三：物体运动基础 -->
+    <div class="card" id="module3">
+        <h2>3. 物体运动基础（亚像素处理）</h2>
+        <p>当像素世界的物体移动速度非常慢时（例如每帧移动 0.1 像素），直接取整会导致物体纹丝不动。我们需要累积这些微小的移动量，直到它们足足有 1 个像素。</p>
+        
+        <p>这就是 <strong>亚像素余量（Sub-pixel Remainder）</strong> 的作用。</p>
+
+        <div class="canvas-container">
+            <canvas id="canvas3" width="300" height="200"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>速度: <input type="range" id="speedInput" min="0.1" max="2.0" step="0.1" value="0.2"> <span id="speedVal">0.2</span> px/frame</label>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="toggleSubPixel" checked> 启用亚像素累积</label>
+            </div>
+            <div class="info-panel" id="posInfo">
+                Pos: 0, Remainder: 0
+            </div>
+        </div>
+
+        <h3>代码原理</h3>
+        <p>Unity C# (<code>Character.cs</code>) 实现：</p>
+        <pre><code>// 累积移动量
+_subPixelPositionRemainder += movement * speed * Time.deltaTime;
+
+// 取整得到实际像素移动
+Vector2 actualMoveAmount = new Vector2(
+    Mathf.Round(_subPixelPositionRemainder.x),
+    Mathf.Round(_subPixelPositionRemainder.y)
+);
+
+// 如果移动了，减去整数部分，保留小数余数
+if (actualMoveAmount.x != 0) {
+    _subPixelPositionRemainder.x -= actualMoveAmount.x;
+}</code></pre>
+    </div>
+
+    <!-- 模块四：碰撞检测 -->
+    <div class="card" id="module4">
+        <h2>4. 碰撞检测（网格查询）</h2>
+        <p>在像素世界中，我们不需要复杂的几何计算来做碰撞检测。我们只需要检查物体的包围盒覆盖了哪些网格节点。</p>
+        
+        <p><strong>逻辑：</strong> 只要覆盖的任何一个节点不为空（<code>!isEmpty</code>），就视为碰撞。</p>
+
+        <div class="canvas-container">
+            <canvas id="canvas4" width="300" height="200"></canvas>
+        </div>
+
+        <div class="controls">
+            <p>使用 <strong>方向键</strong> 或 <strong>WASD</strong> 移动方块。</p>
+            <div class="info-panel" id="collisionInfo">
+                状态: 安全
+            </div>
+        </div>
+
+        <h3>核心逻辑</h3>
+        <p>Unity C# (<code>Character.cs</code>):</p>
+        <pre><code>// 获取包围盒内的所有节点
+Node[] nodes = GameManager.Instance.GetNodesFromBounds(bounds);
+
+foreach (Node node in nodes) {
+    // 如果节点不为空（是墙壁），则碰撞
+    if (node != null && !node.isEmpty) {
+        return true; 
+    }
+}</code></pre>
+    </div>
+
+    <!-- 模块五：高级物理——落沙模拟 -->
+    <div class="card" id="module5">
+        <h2>5. 高级物理：落沙模拟（元胞自动机）</h2>
+        <p>Noita 的魔力在于每个像素看起来都是“活”的。这通常是通过简单的<strong>元胞自动机（Cellular Automata）</strong>规则实现的。当一个像素停止运动（变成静态地形）时，我们不仅检查它下方，还检查它的左下和右下。</p>
+        
+        <p><strong>规则：</strong></p>
+        <ol>
+            <li>如果下方是空的 -> 向下移动。</li>
+            <li>如果下方受阻，但左下是空的 -> 向左下滑落。</li>
+            <li>如果下方受阻，但右下是空的 -> 向右下滑落。</li>
+            <li>否则 -> 变成静态地形。</li>
+        </ol>
+
+        <div class="canvas-container">
+            <canvas id="canvas5" width="300" height="200"></canvas>
+        </div>
+
+        <div class="controls">
+            <p><strong>点击画布</strong>生成流动的沙子。</p>
+            <div class="control-group">
+                <label>粘性 (Stickiness): <input type="range" id="stickinessInput" min="0" max="1" step="0.1" value="0"> <span id="stickinessVal">0</span></label>
+            </div>
+            <div class="control-group">
+                <button class="btn" id="resetSand" style="background-color: #607D8B;">重置画布</button>
+            </div>
+        </div>
+        
+        <h3>代码原理</h3>
+        <p>Unity C# (<code>Particle.cs - CheckIfStopped</code>):</p>
+        <pre><code>// 检查下方
+Node nodeDown = GameManager.Instance.GetNode(x, y - 1);
+if (nodeDown != null && nodeDown.isEmpty) {
+    return false; // 继续下落
+}
+
+// 检查左下
+Node nodeLeft = GameManager.Instance.GetNode(x - 1, y);
+Node nodeDownLeft = GameManager.Instance.GetNode(x - 1, y - 1);
+if (nodeLeft.isEmpty && nodeDownLeft.isEmpty) {
+    x -= 1; y -= 1; // 向左滑
+    return false;
+}
+
+// ... 同样检查右下</code></pre>
+    </div>
+
+    <!-- 模块六：综合实战——爆炸效果 -->
+    <div class="card" id="module6">
+        <h2>6. 综合实战：爆炸效果</h2>
+        <p>最后，让我们把一切结合起来。当我们引爆炸药时，我们不仅是把地形“挖空”，我们还将那些被摧毁的像素转化为<strong>动态粒子</strong>，并赋予它们向外的爆炸力。</p>
+        
+        <p><strong>流程：</strong> 挖洞 -> 生成粒子 -> 赋予初速度 -> 粒子物理模拟 -> 粒子落地变回地形。</p>
+
+        <div class="canvas-container">
+            <canvas id="canvas6" width="400" height="300"></canvas>
+        </div>
+
+        <div class="controls">
+            <p><strong>点击画布</strong>发射炸药！</p>
+            <div class="control-group">
+                <label><input type="checkbox" id="slowMotion"> 慢动作模式 (便于观察)</label>
+            </div>
+        </div>
+
+        <h3>核心逻辑</h3>
+        <p>Unity C# (<code>GameManager.cs - ExplodeNodesInRadius</code>):</p>
+        <pre><code>// 遍历爆炸半径内的所有像素
+if (distance < radius) {
+    // 1. 将原位置标记为空（挖洞）
+    node.isEmpty = true;
+    levelTexture.SetPixel(node.x, node.y, Color.clear);
+    
+    // 2. 概率生成动态粒子
+    if (Random.value <= amountToThrow) {
+        // 计算向外的爆炸力
+        Vector2 force = (nodePos - center) * power;
+        _fallingParticles.Add(new Particle(color, x, y, force));
+    }
+}</code></pre>
+    </div>
+
+    <!-- 总结：在 Unity 中具体如何实现 -->
+    <div class="card" id="summary">
+        <h2>在 Unity 中具体如何实现</h2>
+        <p>要把这些概念转化为一个真正的 Unity 游戏，你需要了解具体的组件和 API 调用流程。</p>
+        
+        <h3>1. 核心组件与设置</h3>
+        <ul>
+            <li><strong>SpriteRenderer</strong>：这是显示层的核心。你需要创建一个 GameObject 并挂载此组件。</li>
+            <li><strong>Texture2D</strong>：这是数据与显示的桥梁。你需要代码动态创建一个 Texture2D，并将其赋值给 <code>SpriteRenderer.sprite</code>。
+                <pre><code>// 初始化代码示例
+texture = new Texture2D(width, height);
+texture.filterMode = FilterMode.Point; // 关键：必须使用 Point 滤波以保持像素清晰
+spriteRenderer.sprite = Sprite.Create(texture, ...);</code></pre>
+            </li>
+        </ul>
+
+        <h3>2. 如何渲染与更新</h3>
+        <p>Unity 不会自动知道你修改了纹理数据，你需要手动同步：</p>
+        <ol>
+            <li><strong>修改数据</strong>：在逻辑循环中，根据物理规则更新你的逻辑网格（<code>Node[,]</code>）。</li>
+            <li><strong>更新纹理</strong>：同步调用 <code>texture.SetPixel(x, y, color)</code> 修改对应位置的颜色。</li>
+            <li><strong>提交更改 (关键)</strong>：每一帧结束时，如果发生了修改，<strong>必须</strong>调用 <code>texture.Apply()</code>。这会将 CPU 内存中的像素数据上传到 GPU。</li>
+        </ol>
+
+        <h3>3. 性能优化策略</h3>
+        <ul>
+            <li><strong>避免全图更新</strong>：<code>texture.Apply()</code> 比较耗时。尽量只在地形发生变化的帧调用它。</li>
+            <li><strong>脏矩形 (Dirty Rects)</strong>：记录下这一帧修改过的像素的最小包围盒，只对这个区域调用 <code>SetPixels</code> 和 <code>Apply</code>。</li>
+            <li><strong>分块 (Chunking)</strong>：对于大地图，不要用一张巨大的 2048x2048 纹理。将其切分为许多个小纹理（如 64x64），每个块作为一个子 GameObject。这样当沙子在一个角落移动时，你只需要重新上传那个小块的纹理数据。</li>
+        </ul>
+
+        <h3>4. 物理架构建议</h3>
+        <ul>
+            <li><strong>双重数据结构</strong>：
+                <ul>
+                    <li><strong>视觉层</strong>：<code>Texture2D</code> (GPU)</li>
+                    <li><strong>逻辑层</strong>：<code>Node[,]</code> 或 <code>int[]</code> 数组 (CPU)。所有的物理判定（如“下方是否为空”）都应查询逻辑层，而不是去读取纹理像素（<code>GetPixel</code> 非常慢）。</li>
+                </ul>
+            </li>
+            <li><strong>混合物理系统</strong>：
+                <ul>
+                    <li><strong>静态地形</strong>：仅仅是网格数据。</li>
+                    <li><strong>落沙</strong>：每一帧遍历网格的元胞自动机。</li>
+                    <li><strong>刚体/玩家</strong>：可以使用 Unity 自带的 <code>Rigidbody2D</code>，但需要自定义碰撞逻辑来检测你的像素网格（如模块 4 所示）。</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
